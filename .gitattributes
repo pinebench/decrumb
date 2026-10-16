@@ -1,0 +1,9 @@
+# Use LF everywhere so gofmt and checksums behave the same on every OS.
+* text=auto eol=lf
+
+# Upstream files must stay byte-for-byte identical: never convert them.
+internal/rules/clearurls/data.min.json -text
+COPYING -text
+COPYING.LESSER -text
+internal/rules/clearurls/COPYING -text
+internal/rules/clearurls/COPYING.LESSER -text

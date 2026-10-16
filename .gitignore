@@ -1,0 +1,28 @@
+# Binaries
+/decrumb
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Build output
+dist/
+
+# Coverage
+*.out
+coverage.*
+*.coverprofile
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
