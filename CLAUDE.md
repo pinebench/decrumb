@@ -18,7 +18,7 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 
 ## Non-negotiables
 
-1. **No network.** No package that ends up in the binary (`cmd/` and `internal/`) may import `net`, `net/http`, or any networking package. (`net/url` is fine.) A test enforces this. The dev-time tools in `scripts/` are exempt; they're never part of the binary.
+1. **No network.** No package that ends up in the binary (`cmd/` and `internal/`) may import `net`, `net/http`, or any networking package. (`net/url` is fine.) A test enforces this (`nonetwork_test.go`). The dev-time tools in `scripts/` are exempt; they're never part of the binary.
 2. **Nothing stored.** The binary never writes files, caches, config or history.
 3. **Rules file is never modified.** `internal/rules/clearurls/data.min.json` is LGPL-3.0 and must stay byte-for-byte identical to the upstream commit recorded in `SOURCE`. Only the update script changes it.
 4. **Overrides are written from scratch.** Never copy an upstream rule and tweak it.
@@ -29,8 +29,10 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 
 ```
 cmd/decrumb/            main package (thin: wires flags to internal packages)
-internal/rules/         load + validate + compile rules; go:embed the bundled file
-internal/rules/clearurls/  data.min.json (LGPL-3.0), SOURCE lock file, license copies
+internal/rules/         load + validate + compile rules; merge overrides
+internal/rules/overrides.json  our own additions (MIT, extend-only, spec §8)
+internal/rules/clearurls/  data.min.json (LGPL-3.0, go:embed), SOURCE lock file, license copies
+nonetwork_test.go       repo-wide test: nothing in cmd/ or internal/ imports networking packages
 internal/matcher/       providers for a URL
 internal/cleaner/       the cleaning pipeline
 internal/explain/       descriptions for the top 30 parameters
