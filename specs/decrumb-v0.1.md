@@ -110,7 +110,7 @@ The rules are written for JavaScript regexes; Go uses RE2. All 1,095 patterns in
 
 Build in this order; each module is reviewed before the next starts.
 
-1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, plus our own overrides file. This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
+1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, merge our overrides file into the bundled rules (§8). This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
 2. **matcher**: find providers for a URL; handles subdomains and country domains (`m.facebook.com`, `amazon.co.uk`)
 3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops
 4. **explain**: our own descriptions for the top 30 tracking parameters (ClearURLs has none)
@@ -124,6 +124,10 @@ All packages live under `internal/` in v0.1 so the API can change freely; v0.3 p
 - ClearURLs rules (`data.min.json`): **LGPL-3.0**, from github.com/ClearURLs/Rules, kept **byte-for-byte unmodified**.
 - Location: next to the package that embeds it (Go's `go:embed` can only reach files in the package directory or below), e.g. `internal/rules/clearurls/data.min.json`, together with a copy of the LGPL-3.0 and GPL-3.0 texts.
 - Our fixes go in a separate overrides file we write from scratch (MIT), never copied-and-tweaked from their entries.
+- **Overrides file** (`internal/rules/overrides.json`, same JSON schema as ClearURLs, starts empty: `{"providers": {}}`):
+  - **Extend only.** A provider with a new name is added. A provider with an existing name gets our `rules`, `referralMarketing`, `rawRules`, `exceptions` and `redirections` **appended** to upstream's. Overrides can never remove or replace upstream entries. Its `urlPattern`, if given for an existing provider, is an error.
+  - Entries are added only for real, observed misses (our own use or user reports), each with a test case, and proposed upstream to ClearURLs. Once upstream accepts a fix, our override entry is removed.
+  - **`--rules <file>` disables overrides.** The user's file is used exactly as given, alone.
 - **Updating rules** is a dev-time script, never done by the tool: download `data.min.json` from a **specific upstream commit**, and record that commit SHA and the file's SHA-256 in a lock file, `internal/rules/clearurls/SOURCE`, as `key: value` lines: `repository`, `commit`, `file`, `downloaded`, `sha256`. CI verifies the bundled file's SHA-256 matches the lock file. `--version` prints the commit SHA as the rules revision.
 
 ### LGPL-3.0 compliance checklist (§4, Combined Works)
