@@ -30,7 +30,7 @@ const (
 	dataFile     = "data.min.json"
 	sourceFile   = "SOURCE"
 
-	// The rules file is about 200 KB; anything far larger is not what we expect.
+	// The rules file is about 106 KB; anything far larger is not what we expect.
 	maxSize = 10 << 20
 )
 
