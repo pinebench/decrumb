@@ -1,0 +1,22 @@
+decrumb
+Copyright (c) 2026 Priyam Kuvadiya
+Licensed under the MIT License (see LICENSE).
+
+This product uses the ClearURLs rules
+(https://github.com/ClearURLs/Rules) by the ClearURLs project and
+contributors.
+
+The ClearURLs rules are licensed under the GNU Lesser General Public
+License, version 3 (LGPL-3.0). See COPYING.LESSER for the LGPL-3.0 text
+and COPYING for the GNU General Public License, version 3, which it
+supplements.
+
+The rules file is bundled unmodified, byte-for-byte as published upstream,
+at internal/rules/clearurls/data.min.json. The exact upstream commit and the
+file's SHA-256 are recorded in internal/rules/clearurls/SOURCE.
+
+You can use your own rules file instead of the bundled one with the
+--rules <file> option.
+
+decrumb is an independent project. It is not made, endorsed or supported
+by the ClearURLs project.
