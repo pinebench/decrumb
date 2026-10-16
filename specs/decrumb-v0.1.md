@@ -110,7 +110,7 @@ The rules are written for JavaScript regexes; Go uses RE2. All 1,095 patterns in
 
 Build in this order; each module is reviewed before the next starts.
 
-1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, plus our own overrides file
+1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, plus our own overrides file. This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
 2. **matcher**: find providers for a URL; handles subdomains and country domains (`m.facebook.com`, `amazon.co.uk`)
 3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops
 4. **explain**: our own descriptions for the top 30 tracking parameters (ClearURLs has none)
@@ -124,7 +124,7 @@ All packages live under `internal/` in v0.1 so the API can change freely; v0.3 p
 - ClearURLs rules (`data.min.json`): **LGPL-3.0**, from github.com/ClearURLs/Rules, kept **byte-for-byte unmodified**.
 - Location: next to the package that embeds it (Go's `go:embed` can only reach files in the package directory or below), e.g. `internal/rules/clearurls/data.min.json`, together with a copy of the LGPL-3.0 and GPL-3.0 texts.
 - Our fixes go in a separate overrides file we write from scratch (MIT), never copied-and-tweaked from their entries.
-- **Updating rules** is a dev-time script, never done by the tool: download `data.min.json` from a **specific upstream commit**, and record that commit SHA and the file's SHA-256 in a small lock file (e.g. `internal/rules/clearurls/SOURCE`). CI verifies the bundled file's SHA-256 matches the lock file. `--version` prints the commit SHA as the rules revision.
+- **Updating rules** is a dev-time script, never done by the tool: download `data.min.json` from a **specific upstream commit**, and record that commit SHA and the file's SHA-256 in a lock file, `internal/rules/clearurls/SOURCE`, as `key: value` lines: `repository`, `commit`, `file`, `downloaded`, `sha256`. CI verifies the bundled file's SHA-256 matches the lock file. `--version` prints the commit SHA as the rules revision.
 
 ### LGPL-3.0 compliance checklist (§4, Combined Works)
 - [ ] Rules file embedded byte-for-byte unmodified (no minifying or converting at build time)
@@ -172,8 +172,7 @@ Module done:
 2. Tests cover the main paths and the relevant edge cases above, and pass
 3. CI green on Windows, macOS and Linux: build, test, vet, format check, lint, vulnerability check
 4. README and CLAUDE.md updated
-5. Reviewed in the Claude project against this spec
-6. Notion status updated
+5. Reviewed in the Claude project against this spec (project tracking, e.g. Notion, is handled there, not in the repo)
 
 Product v0.1 done:
 - All modules done
