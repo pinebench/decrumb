@@ -1,9 +1,11 @@
 package rules
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -67,6 +69,39 @@ func TestLoadBundled(t *testing.T) {
 func TestBundledOverridesFileIsValid(t *testing.T) {
 	if _, err := parse(overridesJSON); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestOverridesHaveSources checks spec §8: every pattern in overrides.json
+// has a source URL in its provider's "sources" map, and every source belongs
+// to a pattern.
+func TestOverridesHaveSources(t *testing.T) {
+	var doc struct {
+		Providers map[string]struct {
+			Rules             []string          `json:"rules"`
+			ReferralMarketing []string          `json:"referralMarketing"`
+			RawRules          []string          `json:"rawRules"`
+			Exceptions        []string          `json:"exceptions"`
+			Redirections      []string          `json:"redirections"`
+			Sources           map[string]string `json:"sources"`
+		} `json:"providers"`
+	}
+	if err := json.Unmarshal(overridesJSON, &doc); err != nil {
+		t.Fatal(err)
+	}
+
+	for name, p := range doc.Providers {
+		patterns := slices.Concat(p.Rules, p.ReferralMarketing, p.RawRules, p.Exceptions, p.Redirections)
+		for _, pattern := range patterns {
+			if !strings.HasPrefix(p.Sources[pattern], "https://") {
+				t.Errorf("provider %q: pattern %q has no https source", name, pattern)
+			}
+		}
+		for pattern := range p.Sources {
+			if !slices.Contains(patterns, pattern) {
+				t.Errorf("provider %q: source for unknown pattern %q", name, pattern)
+			}
+		}
 	}
 }
 

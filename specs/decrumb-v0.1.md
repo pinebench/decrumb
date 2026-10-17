@@ -25,7 +25,7 @@ Home: `github.com/pinebench/decrumb` (also the Go module path, fixed from the fi
 - Read URLs from stdin, one per line, when no URL arguments are given
 - Site-aware cleaning using the ClearURLs rules (global rules + per-site rules and exceptions)
 - Offline redirect unwrapping (e.g. `google.com/url?q=…`, Facebook `l.php?u=…`), then clean the result
-- `--explain`: for each URL, list every removed parameter, which provider rule removed it, and a short description for the **top 30** most common tracking parameters
+- `--explain`: for each URL, list every removed parameter, which provider rule removed it, and a short description for **60** common tracking parameters (list in §7, explain)
 - `--json`: machine-readable output
 - `--rules <file>`: load rules from this file instead of the bundled ones
 - `--version`: version, bundled rules revision, and rules attribution
@@ -78,7 +78,7 @@ https://example.com/page
   ]
 }
 ```
-`description` is omitted for parameters outside the top 30. `unwrapped` lists each redirect hop's URL. `error` is a string for invalid input, in which case `output` is null.
+`description` is omitted for parameters without a description (outside the 60). `unwrapped` lists each redirect hop's URL. `error` is a string for invalid input, in which case `output` is null.
 
 - **Output is always the normalized URL**: input without a scheme comes out with `https://` added, in both plain and JSON output, even when nothing was cleaned.
 - **`changed` is `true` only if something was removed or unwrapped.** Adding `https://` alone is normalization, not cleaning, so it leaves `changed` false.
@@ -146,7 +146,13 @@ Build in this order; each module is reviewed before the next starts.
 1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, merge our overrides file into the bundled rules (§8). This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
 2. **matcher**: find providers for a URL, in the §6 step 3 order (site-specific alphabetical, then `globalRules`). Each provider's `urlPattern` is tested against the full URL string, like ClearURLs; subdomains and country domains (`m.facebook.com`, `amazon.co.uk`) are handled by the patterns themselves and must be covered by tests.
 3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops. Includes the `internal/decode` package (§6, "Redirect target decoding"). Includes **fuzz tests** (`go test -fuzz`) asserting that for any input the cleaner never panics, always terminates, and is idempotent (cleaning an already-clean URL changes nothing), **except** when the 5-hop redirect limit was reached: the cleaner's result reports that the limit was hit, and those inputs are skipped by the idempotence check. Raw rules are **not** re-applied in a loop until nothing changes (that would reintroduce the slow-input risk); if fuzzing finds a raw-rule input that isn't idempotent, the example is reported for a decision rather than worked around in code.
-4. **explain**: our own descriptions for the top 30 tracking parameters (ClearURLs has none)
+4. **explain**: our own descriptions for **60** tracking parameters (ClearURLs has none). More can be added in later releases.
+   - **The 60:** campaign tags `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `utm_id`; ad click IDs `fbclid`, `gclid`, `msclkid`, `yclid`, `dclid`, `twclid`, `cmpid`, `s_cid`, `wt_mc`, `_openstat`; email `mc_cid`, `mc_eid`, `_hsenc`, `mkt_tok`, `hsCtaTracking`, `oly_enc_id`, `vero_id`, `__s`; analytics `_ga`, `_gl`, `srsltid`; referral `ref`; social `igsh`, `igshid`, `si`, `feature`, `pp`, `ref_src`, `s`, `t`, `mibextid`, `__tn__`, `trk`, `lipi`, `share_id`; search `ved`, `ei`, `oq`, `gs_lcrp`, `sca_esv`, `cvid`; shopping `tag`, `qid`, `sr`, `crid`, `pd_rd_*`, `pf_rd_*`, `linkCode`, `ascsubtag`, `otracker`, `lid`, `srno`, `spm`; news `smid`. (Flipkart's `pid` is deliberately excluded until we've checked whether it selects the product variant.)
+   - **Style:** one sentence, about 100 characters at most, shaped "What it is: what it does" (e.g. `fbclid`: "Facebook click ID: lets Facebook connect this visit to the account that clicked."). Plain, factual language: no fear words, no downplaying. English only in v0.1.
+   - **Every description has a source**: a link to vendor documentation, or, where none exists, wording that says so honestly ("Undocumented; appears to …"). No guesses presented as fact.
+   - **Storage:** a data file, `internal/explain/params.json` (inside the package so `go:embed` can reach it), embedded into the binary. It's the single source for descriptions; the v0.2 browser extension reads the same file. Our own writing, MIT-licensed. Each entry: `{"name": …, "provider": … or null, "description": …, "source": …}`. A test validates it: required fields present, no duplicate (name, provider) pairs, `*` only as a single trailing character.
+   - **Matching a description to a removed parameter.** Each entry has a `name` (an exact name, or a family ending in a single trailing `*`, e.g. `pd_rd_*`; no other wildcards) and an optional `provider`. With a provider, the description applies only when that provider was credited with the removal (so `t` is described only on `x`/`twitter`, never elsewhere). Lookup order: exact name + matching provider → exact name without provider → family + matching provider → family without provider. Name matching ignores case, like the rules; it's done on the decoded name the cleaner reports. `utm_*` stays six separate entries, since each means something different.
+   - **A test checks that every described parameter is actually removed by the bundled rules**, so a rules update that stops removing one makes CI flag the stale description.
 5. **cli**: flags, args/stdin, plain/JSON output, exit codes
 
 All packages live under `internal/` in v0.1 so the API can change freely; v0.3 promotes a stable public package.
@@ -159,7 +165,9 @@ All packages live under `internal/` in v0.1 so the API can change freely; v0.3 p
 - Our fixes go in a separate overrides file we write from scratch (MIT), never copied-and-tweaked from their entries.
 - **Overrides file** (`internal/rules/overrides.json`, same JSON schema as ClearURLs, starts empty: `{"providers": {}}`):
   - **Extend only.** A provider with a new name is added. A provider with an existing name gets our `rules`, `referralMarketing`, `rawRules`, `exceptions` and `redirections` **appended** to upstream's. Overrides can never remove or replace upstream entries. Its `urlPattern`, if given for an existing provider, is an error.
-  - Entries are added only for real, observed misses (our own use or user reports), each with a test case, and proposed upstream to ClearURLs. Once upstream accepts a fix, our override entry is removed.
+  - Entries are added only for real misses: **observed** in real links (our own use or user reports), **or documented by the vendor itself** as a click or tracking identifier. Each entry has a source, a test case in `testdata/cases.json`, and is proposed upstream to ClearURLs. Once upstream accepts a fix, our override entry is removed.
+  - **Sources live in the file:** each provider object in `overrides.json` may carry a `"sources"` map from pattern to URL (the loader ignores unknown fields, so this stays compatible with the ClearURLs schema). A test checks that every override pattern has a source.
+  - **First entries (v0.1):** added to `globalRules`: `gbraid`, `wbraid`, `gad_source`, `gad_campaignid`, `gclsrc` (Google Ads), `ttclid` (TikTok), `li_fat_id` (LinkedIn), `epik` (Pinterest), `ScCid` (Snapchat), `_hsmi` (HubSpot), `_branch_match_id` (Branch). All vendor-documented click or tracking IDs that the bundled rules (commit `11086f4`) don't remove. `rdt_cid` (Reddit) is pending: it's added once a readable Reddit page documenting it is confirmed as its source.
   - **`--rules <file>` disables overrides.** The user's file is used exactly as given, alone.
 - **Updating rules** is a dev-time script, never done by the tool: download `data.min.json` from a **specific upstream commit**, and record that commit SHA and the file's SHA-256 in a lock file, `internal/rules/clearurls/SOURCE`, as `key: value` lines: `repository`, `commit`, `file`, `downloaded`, `sha256`. CI verifies the bundled file's SHA-256 matches the lock file. `--version` prints the commit SHA as the rules revision.
 
