@@ -35,10 +35,11 @@ internal/rules/overrides.json  our own additions (MIT, extend-only, spec §8)
 internal/rules/clearurls/  data.min.json (LGPL-3.0, go:embed), SOURCE lock file, license copies
 nonetwork_test.go       repo-wide test: nothing in cmd/ or internal/ imports networking packages
 internal/matcher/       providers for a URL
+internal/scheme/        "has a scheme?" check shared by decode and cleaner (spec §6 step 1)
 internal/decode/        redirect target decoding (linear time, spec §6)
-internal/cleaner/       the cleaning pipeline
+internal/cleaner/       the cleaning pipeline (spec §6 steps 1–8); fuzz seeds in its testdata/fuzz/
 internal/explain/       descriptions for the top 30 parameters
-testdata/cases.json     shared input → output cases (also used by the future TS extension)
+testdata/cases.json     shared input → output cases (spec §10; also used by the future TS extension)
 scripts/update-rules    dev-time rules update (download pinned commit, write SOURCE)
 specs/                  specs
 ```
