@@ -116,7 +116,8 @@ https://example.com/page
 - **Accepting the result** (otherwise don't unwrap):
   1. Starts with `http://` or `https://` → use it, if it parses as a URL with a non-empty host.
   2. Starts with any other scheme (letters, digits, `+ . -`, then `:`, where what follows the `:` is not a port number) → not usable. This rejects `mailto:`, `javascript:`, `ftp:`, `data:` and the like.
-  3. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
+  3. Starts with `//` (protocol-relative, like step 1) → prepend `https:`, then apply the same checks as rule 4 (`///example.com` and `//user@example.com` are rejected).
+  4. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
 - Required cases also include: `example.com/article`, `example.com:8080/path` (a port, not a scheme), `mailto:a@b.com`, `javascript:alert(1)`, `foo` (no dot), `user:pass@example.com`.
 
 **Algorithm: linear time, no round limit.** Decoding round by round costs length × rounds, so a deeply nested hostile input is a slow-input denial of service (measured in the prototype: 5.8 s at depth 8,000). Required instead:
