@@ -250,6 +250,16 @@
     "note": "double-wrapped: google redirect to a facebook redirect, both unwrapped, then cleaned"
   },
   {
+    "input": "https://l.messenger.com/l.php?u=//example.com/article",
+    "output": "https://example.com/article",
+    "note": "protocol-relative redirect target (//host/path) gets https: and is unwrapped (messenger's rule captures any target)"
+  },
+  {
+    "input": "https://l.facebook.com/l.php?u=//example.com/article",
+    "output": "https://l.facebook.com/l.php?u=//example.com/article",
+    "note": "upstream limit: facebook's redirection only captures an encoded https target (u=https%3A%2F%2F...), so a protocol-relative u= is not unwrapped"
+  },
+  {
     "input": "https://www.facebook.com/somepage?__tn__=K-R&eid=ARB&ref=bookmarks",
     "output": "https://www.facebook.com/somepage",
     "note": "facebook page parameters: __tn__, eid and ref"

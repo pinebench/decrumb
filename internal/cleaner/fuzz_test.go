@@ -22,6 +22,7 @@ func FuzzClean(f *testing.F) {
 		"https://pantip.com/topic/1#lead=1&utm_source=2",
 		"https://www.google.com/url?q=https%253A%252F%252Fe.com%252F",
 		"//example.com/?fbclid=1",
+		"https://l.messenger.com/l.php?u=//example.com/a%3Futm_source%3D1",
 	} {
 		f.Add(u)
 	}

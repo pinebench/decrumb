@@ -22,7 +22,8 @@ import (
 // the target (q=salt%2526pepper must stay q=salt%26pepper).
 //
 // A target that never gets an http(s) scheme is decoded once. If it then has
-// no scheme at all, https:// is added, but only when the result has a host
+// no scheme at all, https:// is added (https: if it starts with //, as in
+// //example.com/a), but only when the result has a host
 // with a dot in it (or an IP address) and no user info. Other schemes
 // (mailto:, javascript:, ftp:, ...) are never usable.
 //
@@ -157,8 +158,13 @@ func usable(s string) (string, bool) {
 		return "", false
 	}
 
-	// No scheme at all, like Google AMP's amp/s/example.com/article.
-	s = "https://" + s
+	if strings.HasPrefix(s, "//") {
+		// Protocol-relative, like //example.com/a (spec §6, step 1).
+		s = "https:" + s
+	} else {
+		// No scheme at all, like Google AMP's amp/s/example.com/article.
+		s = "https://" + s
+	}
 	u, err := url.Parse(s)
 	if err != nil || u.User != nil || !plausibleHost(u) {
 		return "", false
