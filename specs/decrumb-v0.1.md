@@ -80,16 +80,22 @@ https://example.com/page
 ```
 `description` is omitted for parameters outside the top 30. `unwrapped` lists each redirect hop's URL. `error` is a string for invalid input, in which case `output` is null.
 
+- **Output is always the normalized URL**: input without a scheme comes out with `https://` added, in both plain and JSON output, even when nothing was cleaned.
+- **`changed` is `true` only if something was removed or unwrapped.** Adding `https://` alone is normalization, not cleaning, so it leaves `changed` false.
+
 ## 6. Cleaning logic (per URL)
 
-1. Trim whitespace. If there's no scheme, add `https://`. Parse; if it's still invalid, report an error.
-2. If the scheme is not `http`/`https`, return the input unchanged.
+1. Trim leading and trailing whitespace. Then **percent-encode every whitespace character left inside the URL**, the way browsers do (ASCII space, tab, newline and Unicode whitespace such as U+00A0, using their UTF-8 bytes: space → `%20`, U+00A0 → `%C2%A0`). No other characters are changed. This keeps the meaning of values like `?a &utm=1` (→ `?a%20`), keeps pasted links like `my file.pdf` working, and makes cleaning idempotent. If the input starts with `//` (protocol-relative, e.g. copied from HTML), prepend `https:`. Otherwise, if there's no scheme, add `https://`. "Has a scheme" uses the same rule as redirect decoding (one shared helper): `mailto:x` has a scheme; `example.com:8080/path` is a host and port, so it gets `https://`. Whitespace encoding applies to http(s) URLs only. Parse; if it can't be parsed, has no host, or has whitespace in the host (including encoded, e.g. `%C2%A0`), it's **invalid**: report an error (exit code 1).
+2. If the scheme is not `http`/`https`, return the input unchanged (only trimmed).
 3. Collect the providers whose `urlPattern` matches (site-specific providers + `globalRules`). **Order:** site-specific providers first (sorted by name in byte order, so capitalized names come first), then `globalRules`. This order decides which provider is credited for a removal (the first one whose rule matches) and which redirection is tried first.
 4. **Exceptions are per provider** (like ClearURLs): if a provider's **exception** matches the URL, that provider is skipped for this URL; every other matching provider still applies. A URL is left unchanged only if every matching provider is skipped.
-5. If a **redirection** matches → take the captured target, decode it (see "Redirect target decoding" below), and restart from step 1 with it. Stop after **5 hops** (return the last URL reached). If the target can't be decoded into a valid http(s) URL, don't unwrap: keep the current URL and continue cleaning it.
-6. Apply **rawRules** (regexes applied to the URL string, removing every match). Raw rules run **before** parameter removal, in the same order as ClearURLs.
-7. Remove query parameters whose **name** matches a provider **rule** or **referralMarketing** rule. Matching is case-insensitive and must match the whole parameter name. Rules are tested against the **percent-decoded** name (so `utm%5Fsource` is treated as `utm_source`, like ClearURLs), while the output keeps every remaining parameter's **original** encoding (step 8). If a name can't be decoded (malformed percent-encoding), test the raw name instead. Do the same for parameters in the fragment (`#a=1&b=2`).
+5. If a **redirection** matches → take the captured target, decode it (see "Redirect target decoding" below), and restart from step 1 with it. Stop after **5 hops**: the last URL reached is still cleaned (steps 6–8), and the result reports that the limit was hit. Redirections are tried in the step 3 provider order; if a target can't be decoded into a valid http(s) URL, the **next** matching redirection is tried. If none works, don't unwrap: keep the current URL and continue cleaning it.
+6. Apply **rawRules** (regexes applied to the URL string, removing every match). Raw rules run **before** parameter removal, in the same order as ClearURLs. **Safety check:** after each raw rule, re-parse the URL; if it's no longer a valid http(s) URL with the **same host**, discard that rule's change and continue with the next rule.
+7. Remove query parameters whose **name** matches a provider **rule** or **referralMarketing** rule. Matching is case-insensitive and must match the whole parameter name. Rules are tested against the **percent-decoded** name (so `utm%5Fsource` is treated as `utm_source`, like ClearURLs), while the output keeps every remaining parameter's **original** encoding (step 8). If a name can't be decoded (malformed percent-encoding), test the raw name instead. Do the same for parameters in the fragment (`#a=1&b=2`), but **only if the fragment contains `=`**; otherwise the fragment is left byte-for-byte unchanged (`#section-2`, `#/inbox/42`). When it is treated as parameters: split on `&`, remove matching names, rejoin the rest in original order and encoding; a value containing `=` (e.g. `#:~:text=a=b`) is kept whole. If nothing is removed, the fragment is not rebuilt at all; if every fragment parameter is removed, the `#` is dropped (like the `?`). This is deliberately stricter than ClearURLs, which rebuilds every fragment and can drop values containing `=`, empty pieces, and the order of repeated names.
 8. Keep remaining parameters in their **original order and original encoding**. Keep the fragment. Don't add or remove a trailing `?` unless all parameters were removed (then drop the `?`).
+   - Repeated parameters: **every** matching occurrence is removed (`?utm_source=x&utm_source=y`).
+   - Valueless and empty parameters (`?flag`, `a=1&&b=2`) are kept exactly as they are unless a rule matches them.
+   - Host and path are never normalized (uppercase hosts stay uppercase); only parameters and raw-rule matches are removed.
 
 ### Rule fields: how each is treated
 | Field | v0.1 behavior |
@@ -98,7 +104,7 @@ https://example.com/page
 | `rules` | Parameter names to remove |
 | `referralMarketing` | Removed by default (matches ClearURLs' default) |
 | `rawRules` | Regexes applied to the whole URL |
-| `exceptions` | Skip cleaning entirely |
+| `exceptions` | Skip **that provider** for a matching URL (per provider, §6 step 4) |
 | `redirections` | Offline unwrap of the captured target |
 | `completeProvider` | **Ignored.** In the browser it blocks whole ad domains; a CLI that cleans URLs has nothing to block. |
 | `forceRedirection` | **Ignored.** Browser-only behavior. |
@@ -110,7 +116,8 @@ https://example.com/page
 - **Accepting the result** (otherwise don't unwrap):
   1. Starts with `http://` or `https://` → use it, if it parses as a URL with a non-empty host.
   2. Starts with any other scheme (letters, digits, `+ . -`, then `:`, where what follows the `:` is not a port number) → not usable. This rejects `mailto:`, `javascript:`, `ftp:`, `data:` and the like.
-  3. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
+  3. Starts with `//` (protocol-relative, like step 1) → prepend `https:`, then apply the same checks as rule 4 (`///example.com` and `//user@example.com` are rejected).
+  4. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
 - Required cases also include: `example.com/article`, `example.com:8080/path` (a port, not a scheme), `mailto:a@b.com`, `javascript:alert(1)`, `foo` (no dot), `user:pass@example.com`.
 
 **Algorithm: linear time, no round limit.** Decoding round by round costs length × rounds, so a deeply nested hostile input is a slow-input denial of service (measured in the prototype: 5.8 s at depth 8,000). Required instead:
@@ -138,7 +145,7 @@ Build in this order; each module is reviewed before the next starts.
 
 1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, merge our overrides file into the bundled rules (§8). This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
 2. **matcher**: find providers for a URL, in the §6 step 3 order (site-specific alphabetical, then `globalRules`). Each provider's `urlPattern` is tested against the full URL string, like ClearURLs; subdomains and country domains (`m.facebook.com`, `amazon.co.uk`) are handled by the patterns themselves and must be covered by tests.
-3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops. Includes the `internal/decode` package (§6, "Redirect target decoding"). Includes **fuzz tests** (`go test -fuzz`) asserting that for any input the cleaner never panics, always terminates, and is idempotent (cleaning an already-clean URL changes nothing).
+3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops. Includes the `internal/decode` package (§6, "Redirect target decoding"). Includes **fuzz tests** (`go test -fuzz`) asserting that for any input the cleaner never panics, always terminates, and is idempotent (cleaning an already-clean URL changes nothing), **except** when the 5-hop redirect limit was reached: the cleaner's result reports that the limit was hit, and those inputs are skipped by the idempotence check. Raw rules are **not** re-applied in a loop until nothing changes (that would reintroduce the slow-input risk); if fuzzing finds a raw-rule input that isn't idempotent, the example is reported for a decision rather than worked around in code.
 4. **explain**: our own descriptions for the top 30 tracking parameters (ClearURLs has none)
 5. **cli**: flags, args/stdin, plain/JSON output, exit codes
 

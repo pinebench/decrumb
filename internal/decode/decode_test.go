@@ -101,6 +101,13 @@ func TestTarget(t *testing.T) {
 		{"IPv6 address", "[2001:db8::1]:8080/x", "https://[2001:db8::1]:8080/x"},
 		{"IPv4-mapped IPv6 address", "[::ffff:192.0.2.1]/x", "https://[::ffff:192.0.2.1]/x"},
 
+		// Protocol-relative: https: is added.
+		{"encoded protocol-relative", "%2F%2Fexample.com%2Fa", "https://example.com/a"},
+		{"protocol-relative without path", "//example.com", "https://example.com"},
+		{"protocol-relative, no host", "///example.com", ""},
+		{"protocol-relative with user info", "//user@example.com", ""},
+		{"protocol-relative, no dot in host", "//foo/x", ""},
+
 		// Not usable.
 		{"mailto", "mailto:a@b.com", ""},
 		{"javascript", "javascript:alert(1)", ""},
