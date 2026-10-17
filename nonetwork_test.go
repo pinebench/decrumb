@@ -8,8 +8,9 @@ import (
 )
 
 // TestNoNetworkImports enforces spec §11: no package built into the binary
-// (cmd/ and internal/) may import a networking package, directly or through
-// another package. scripts/ is exempt: those are dev-time tools.
+// (cmd/ and internal/) may depend, directly or through another package, on
+// Go's net package, where all network I/O lives. scripts/ is exempt: those
+// are dev-time tools.
 //
 // It asks the go tool for the full dependency list, so packages added
 // later are covered automatically.
@@ -43,11 +44,14 @@ func TestIsNetworkPackage(t *testing.T) {
 		{"net", true},
 		{"net/http", true},
 		{"net/http/httptrace", true},
-		{"net/netip", true},
 		{"net/rpc", true},
+		{"net/rpc/jsonrpc", true},
+		{"net/textproto", true},
 		{"crypto/tls", true},
+		{"golang.org/x/net", true},
 		{"golang.org/x/net/html", true},
 		{"net/url", false},
+		{"net/netip", false},
 		{"network", false},
 		{"encoding/json", false},
 		{"github.com/pinebench/decrumb/internal/rules", false},
@@ -60,14 +64,20 @@ func TestIsNetworkPackage(t *testing.T) {
 }
 
 // isNetworkPackage reports whether pkg is a networking package.
-// net/url is allowed: it only parses strings.
+//
+// The real check is pkg == "net": every package that does network I/O
+// depends on it, so it shows up in any dependency graph that can reach the
+// network. The other cases are a backstop that names the usual suspects.
+// Pure parsing packages such as net/url and net/netip are allowed.
 func isNetworkPackage(pkg string) bool {
 	switch {
-	case pkg == "net/url":
-		return false
-	case pkg == "net", strings.HasPrefix(pkg, "net/"):
+	case pkg == "net":
 		return true
-	case pkg == "crypto/tls":
+	case pkg == "net/http", strings.HasPrefix(pkg, "net/http/"):
+		return true
+	case pkg == "net/rpc", strings.HasPrefix(pkg, "net/rpc/"):
+		return true
+	case pkg == "net/textproto", pkg == "crypto/tls":
 		return true
 	case pkg == "golang.org/x/net", strings.HasPrefix(pkg, "golang.org/x/net/"):
 		return true

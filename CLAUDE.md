@@ -19,7 +19,7 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 
 ## Non-negotiables
 
-1. **No network.** No package that ends up in the binary (`cmd/` and `internal/`) may import `net`, `net/http`, or any networking package. (`net/url` is fine.) A test enforces this (`nonetwork_test.go`). The dev-time tools in `scripts/` are exempt; they're never part of the binary.
+1. **No network.** No package built into the binary (`cmd/` and `internal/`) may depend, directly or indirectly, on Go's `net` package, which is where all network I/O lives. Pure parsing packages like `net/url` and `net/netip` are fine. A test enforces this (`nonetwork_test.go`). The dev-time tools in `scripts/` are exempt.
 2. **Nothing stored.** The binary never writes files, caches, config or history.
 3. **Rules file is never modified.** `internal/rules/clearurls/data.min.json` is LGPL-3.0 and must stay byte-for-byte identical to the upstream commit recorded in `SOURCE`. Only the update script changes it.
 4. **Overrides are written from scratch.** Never copy an upstream rule and tweak it.

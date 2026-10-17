@@ -105,8 +105,13 @@ https://example.com/page
 
 ### Redirect target decoding (package `internal/decode`)
 **Semantics: decode only as much as needed.** The captured target is a parameter value, so it's decoded once; it's decoded further only while it still doesn't start with `http://` or `https://` (case-insensitive) because it was wrapped more than once. ClearURLs decodes until nothing changes, which can corrupt the target (`q=salt%2526pepper` must become `q=salt%26pepper`, not `q=salt&pepper`); we deliberately don't.
-- Let *k* be the number of decoding rounds needed for the scheme (`https://` or `http://`) at the start to appear, with *k* ≥ 1. The result is the target after exactly *k* rounds. If no scheme ever appears, there's no usable target (don't unwrap).
-- A "round" decodes every valid `%HH` (two hex digits) once, left to right. `+` is **not** turned into a space. Invalid escapes (`%`, `%G1`, `%4`) are left as they are. Work on bytes; the final result must be valid UTF-8 and parse as an http(s) URL, otherwise don't unwrap. If the decoded target has no scheme, `https://` is added.
+- Let *k* be the number of decoding rounds needed for the scheme (`https://` or `http://`, case-insensitive) at the start to appear, with *k* ≥ 1. The result is the target after exactly *k* rounds. If no http(s) scheme appears at any depth, *k* = 1: decode one round.
+- A "round" decodes every valid `%HH` (two hex digits) once, left to right. `+` is **not** turned into a space. Invalid escapes (`%`, `%G1`, `%4`) are left as they are. Work on bytes; the result must be valid UTF-8.
+- **Accepting the result** (otherwise don't unwrap):
+  1. Starts with `http://` or `https://` → use it, if it parses as a URL with a non-empty host.
+  2. Starts with any other scheme (letters, digits, `+ . -`, then `:`, where what follows the `:` is not a port number) → not usable. This rejects `mailto:`, `javascript:`, `ftp:`, `data:` and the like.
+  3. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
+- Required cases also include: `example.com/article`, `example.com:8080/path` (a port, not a scheme), `mailto:a@b.com`, `javascript:alert(1)`, `foo` (no dot), `user:pass@example.com`.
 
 **Algorithm: linear time, no round limit.** Decoding round by round costs length × rounds, so a deeply nested hostile input is a slow-input denial of service (measured in the prototype: 5.8 s at depth 8,000). Required instead:
 - A single left-to-right pass with a stack of (byte, depth) pairs. After each push, while the top three entries form `%HH`, replace them with the decoded byte whose depth is `max(depths) + 1`. With a depth cap *K*, only reductions whose new depth is ≤ *K* are applied.
@@ -182,7 +187,7 @@ All packages live under `internal/` in v0.1 so the API can change freely; v0.3 p
 - Platforms: Windows, macOS, Linux (amd64 + arm64)
 - Single static binary, no runtime dependencies
 - Cleans 10,000 URLs from stdin in under 1 second on a typical laptop (benchmark test)
-- No network access anywhere in the program. A test asserts that no package built into the binary (`cmd/`, `internal/`) imports `net`, `net/http` or other networking packages (`net/url` is fine: it only parses strings). Dev-time tools under `scripts/` are exempt.
+- No network access anywhere in the program. A test asserts that no package built into the binary (`cmd/`, `internal/`) depends, directly or indirectly, on Go's `net` package, which is where all network I/O lives (`net/http`, `crypto/tls` and `golang.org/x/net` all depend on it). Those are also checked explicitly as a backstop. Pure parsing packages such as `net/url` and `net/netip` are allowed. Dev-time tools under `scripts/` are exempt.
 
 ## 12. Roadmap
 
