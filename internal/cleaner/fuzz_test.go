@@ -21,6 +21,7 @@ func FuzzClean(f *testing.F) {
 		"https://www.amazon.com/dp/X/ref=a#b?c=d", "https://www.bigfishgames.com/x?pc",
 		"https://pantip.com/topic/1#lead=1&utm_source=2",
 		"https://www.google.com/url?q=https%253A%252F%252Fe.com%252F",
+		"//example.com/?fbclid=1",
 	} {
 		f.Add(u)
 	}

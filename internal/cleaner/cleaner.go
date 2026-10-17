@@ -134,14 +134,17 @@ func (c *Cleaner) Clean(input string) Result {
 	return res
 }
 
-// normalize is step 1: trim whitespace, add https:// if there's no scheme,
-// percent-encode whitespace left inside the URL, and parse. isHTTP reports
+// normalize is step 1: trim whitespace, add https: to a protocol-relative
+// //host/path or https:// if there's no scheme, percent-encode whitespace left inside the URL, and parse. isHTTP reports
 // whether the scheme is http or https; only then is a host required, and
 // only then is whitespace encoded (step 2 returns any other scheme as it
 // is, after trimming).
 func normalize(input string) (s string, isHTTP bool, err error) {
 	s = strings.TrimSpace(input)
-	if !scheme.Has(s) {
+	switch {
+	case strings.HasPrefix(s, "//"): // protocol-relative, e.g. copied from HTML
+		s = "https:" + s
+	case !scheme.Has(s):
 		s = "https://" + s
 	}
 	if scheme.HTTPLen(s) > 0 {

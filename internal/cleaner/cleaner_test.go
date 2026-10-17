@@ -85,6 +85,9 @@ func TestNormalize(t *testing.T) {
 		{"example.com/page", "https://example.com/page", true, false},
 		{"example.com:8080/path", "https://example.com:8080/path", true, false},
 		{"localhost:3000", "https://localhost:3000", true, false},
+		{"//example.com/x", "https://example.com/x", true, false},
+		{" //example.com ", "https://example.com", true, false},
+		{"//example.com/a b", "https://example.com/a%20b", true, false},
 		{"mailto:x", "mailto:x", false, false},
 		{"mailto:a@b.com", "mailto:a@b.com", false, false},
 		{"ftp://example.com/f", "ftp://example.com/f", false, false},
@@ -111,7 +114,7 @@ func TestNormalize(t *testing.T) {
 		{"https://exa mple.com/", "", false, true},
 		{"https://example.com　/", "", false, true},
 		{"https://example.com:port/", "", false, true},
-		{"//example.com/", "", false, true},
+		{"///example.com", "", false, true}, // protocol-relative, but no host
 	}
 	for _, tt := range tests {
 		got, isHTTP, err := normalize(tt.input)

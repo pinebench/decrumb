@@ -40,6 +40,16 @@
     "note": "no scheme and nothing to remove: the output is still the normalized URL (changed stays false)"
   },
   {
+    "input": "//example.com/x?utm_source=1",
+    "output": "https://example.com/x",
+    "note": "protocol-relative input (//host/path, e.g. copied from HTML) gets https: prepended, then is cleaned"
+  },
+  {
+    "input": "//example.com",
+    "output": "https://example.com",
+    "note": "protocol-relative input without a path"
+  },
+  {
     "input": "example.com:8080/path?fbclid=x",
     "output": "https://example.com:8080/path",
     "note": "a host and port is not a scheme, so https:// is added"
