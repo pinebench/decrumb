@@ -14,6 +14,7 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 - **One module at a time**, in the spec's order: rules → matcher → cleaner → explain → cli.
 - Each module gets its own branch (`module/<name>`) and pull request into `main`.
 - When a module is finished, **stop**. Post a short summary: what was built, test coverage, any deviation from the spec and why, and open questions. The owner reviews it against the spec before the next module starts.
+- **Never merge your own PRs** (no `gh pr merge`, no pushing to `main`). The owner merges only after CI is green and the module has been reviewed in the Claude project against the spec.
 - The owner is learning Go. Write simple, idiomatic, readable Go over clever Go, and briefly explain non-obvious idioms in the module summary (not in long code comments).
 
 ## Non-negotiables
