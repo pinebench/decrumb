@@ -84,11 +84,11 @@ https://example.com/page
 
 1. Trim whitespace. If there's no scheme, add `https://`. Parse; if it's still invalid, report an error.
 2. If the scheme is not `http`/`https`, return the input unchanged.
-3. Collect the providers whose `urlPattern` matches (site-specific providers + `globalRules`). **Order:** site-specific providers first (alphabetical among themselves), then `globalRules`. This order decides which provider is credited for a removal (the first one whose rule matches) and which redirection is tried first.
-4. If any matching provider's **exception** matches → return the URL unchanged (stop).
-5. If a **redirection** matches → take the captured target, URL-decode it, and restart from step 1 with it. Stop after **5 hops** (return the last URL reached).
-6. Remove query parameters whose **name** matches a provider **rule** or **referralMarketing** rule. Matching is case-insensitive and must match the whole parameter name. Rules are tested against the **percent-decoded** name (so `utm%5Fsource` is treated as `utm_source`, like ClearURLs), while the output keeps every remaining parameter's **original** encoding (step 8). If a name can't be decoded (malformed percent-encoding), test the raw name instead. Do the same for parameters in the fragment (`#a=1&b=2`).
-7. Apply **rawRules** (regexes applied to the URL string, removing matches).
+3. Collect the providers whose `urlPattern` matches (site-specific providers + `globalRules`). **Order:** site-specific providers first (sorted by name in byte order, so capitalized names come first), then `globalRules`. This order decides which provider is credited for a removal (the first one whose rule matches) and which redirection is tried first.
+4. **Exceptions are per provider** (like ClearURLs): if a provider's **exception** matches the URL, that provider is skipped for this URL; every other matching provider still applies. A URL is left unchanged only if every matching provider is skipped.
+5. If a **redirection** matches → take the captured target, decode it (see "Redirect target decoding" below), and restart from step 1 with it. Stop after **5 hops** (return the last URL reached). If the target can't be decoded into a valid http(s) URL, don't unwrap: keep the current URL and continue cleaning it.
+6. Apply **rawRules** (regexes applied to the URL string, removing every match). Raw rules run **before** parameter removal, in the same order as ClearURLs.
+7. Remove query parameters whose **name** matches a provider **rule** or **referralMarketing** rule. Matching is case-insensitive and must match the whole parameter name. Rules are tested against the **percent-decoded** name (so `utm%5Fsource` is treated as `utm_source`, like ClearURLs), while the output keeps every remaining parameter's **original** encoding (step 8). If a name can't be decoded (malformed percent-encoding), test the raw name instead. Do the same for parameters in the fragment (`#a=1&b=2`).
 8. Keep remaining parameters in their **original order and original encoding**. Keep the fragment. Don't add or remove a trailing `?` unless all parameters were removed (then drop the `?`).
 
 ### Rule fields: how each is treated
@@ -102,6 +102,27 @@ https://example.com/page
 | `redirections` | Offline unwrap of the captured target |
 | `completeProvider` | **Ignored.** In the browser it blocks whole ad domains; a CLI that cleans URLs has nothing to block. |
 | `forceRedirection` | **Ignored.** Browser-only behavior. |
+
+### Redirect target decoding (package `internal/decode`)
+**Semantics: decode only as much as needed.** The captured target is a parameter value, so it's decoded once; it's decoded further only while it still doesn't start with `http://` or `https://` (case-insensitive) because it was wrapped more than once. ClearURLs decodes until nothing changes, which can corrupt the target (`q=salt%2526pepper` must become `q=salt%26pepper`, not `q=salt&pepper`); we deliberately don't.
+- Let *k* be the number of decoding rounds needed for the scheme (`https://` or `http://`, case-insensitive) at the start to appear, with *k* ≥ 1. The result is the target after exactly *k* rounds. If no http(s) scheme appears at any depth, *k* = 1: decode one round.
+- A "round" decodes every valid `%HH` (two hex digits) once, left to right. `+` is **not** turned into a space. Invalid escapes (`%`, `%G1`, `%4`) are left as they are. Work on bytes; the result must be valid UTF-8.
+- **Accepting the result** (otherwise don't unwrap):
+  1. Starts with `http://` or `https://` → use it, if it parses as a URL with a non-empty host.
+  2. Starts with any other scheme (letters, digits, `+ . -`, then `:`, where what follows the `:` is not a port number) → not usable. This rejects `mailto:`, `javascript:`, `ftp:`, `data:` and the like.
+  3. Otherwise (no scheme, e.g. Google AMP's `amp/s/example.com/article`) → prepend `https://` and accept only if it parses with a non-empty host that contains a dot or is an IP address, and has **no userinfo** (so `mailto`-style text like `a@b.com` can't become `https://a@b.com`).
+- Required cases also include: `example.com/article`, `example.com:8080/path` (a port, not a scheme), `mailto:a@b.com`, `javascript:alert(1)`, `foo` (no dot), `user:pass@example.com`.
+
+**Algorithm: linear time, no round limit.** Decoding round by round costs length × rounds, so a deeply nested hostile input is a slow-input denial of service (measured in the prototype: 5.8 s at depth 8,000). Required instead:
+- A single left-to-right pass with a stack of (byte, depth) pairs. After each push, while the top three entries form `%HH`, replace them with the decoded byte whose depth is `max(depths) + 1`. With a depth cap *K*, only reductions whose new depth is ≤ *K* are applied.
+- Pass 1 (no cap) finds the depth of the bytes forming the scheme, which gives *k*. Pass 2 runs with cap *K = k*. Both passes are linear, because each byte is pushed once and each reduction removes two bytes for good.
+- Why it's correct: escapes never overlap (the bytes after `%` are hex digits, never `%`), so the order of decoding doesn't change the result, and the depth of a byte equals the round in which round-by-round decoding would produce it.
+
+**Required tests:**
+- A simple round-by-round reference decoder, in test code only.
+- Property tests and a fuzz test: for random and adversarial inputs, the fast decoder equals the reference, both fully and with a cap of *K* rounds for *K* = 0…6.
+- A scaling test: on deeply nested hostile inputs (e.g. `%` + `25`×n + `41`), doubling n must not much more than double the time.
+- Cases: single-, double- and triple-encoded targets; the `salt%26pepper` case; invalid escapes; `+` kept; uppercase `HTTPS://`; targets without a scheme; inputs that never become a URL.
 
 ### Loading behavior (decided in the rules module)
 - Empty patterns are rejected. Unknown JSON fields are ignored, so new upstream fields don't break loading.
@@ -117,7 +138,7 @@ Build in this order; each module is reviewed before the next starts.
 
 1. **rules**: load and validate a rules file (bundled default via `go:embed`, or `--rules`), compile all patterns once, merge our overrides file into the bundled rules (§8). This module also adds the repo-wide no-network import test (§11), so it's enforced from the first module onwards.
 2. **matcher**: find providers for a URL, in the §6 step 3 order (site-specific alphabetical, then `globalRules`). Each provider's `urlPattern` is tested against the full URL string, like ClearURLs; subdomains and country domains (`m.facebook.com`, `amazon.co.uk`) are handled by the patterns themselves and must be covered by tests.
-3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops. Includes **fuzz tests** (`go test -fuzz`) asserting that for any input the cleaner never panics, always terminates, and is idempotent (cleaning an already-clean URL changes nothing).
+3. **cleaner**: exceptions, redirections, rules, referral rules, raw rules; returns the clean URL plus a list of removals and unwrap hops. Includes the `internal/decode` package (§6, "Redirect target decoding"). Includes **fuzz tests** (`go test -fuzz`) asserting that for any input the cleaner never panics, always terminates, and is idempotent (cleaning an already-clean URL changes nothing).
 4. **explain**: our own descriptions for the top 30 tracking parameters (ClearURLs has none)
 5. **cli**: flags, args/stdin, plain/JSON output, exit codes
 
@@ -166,7 +187,7 @@ All packages live under `internal/` in v0.1 so the API can change freely; v0.3 p
 - Platforms: Windows, macOS, Linux (amd64 + arm64)
 - Single static binary, no runtime dependencies
 - Cleans 10,000 URLs from stdin in under 1 second on a typical laptop (benchmark test)
-- No network access anywhere in the program. A test asserts that no package built into the binary (`cmd/`, `internal/`) imports `net`, `net/http` or other networking packages (`net/url` is fine: it only parses strings). Dev-time tools under `scripts/` are exempt.
+- No network access anywhere in the program. A test asserts that no package built into the binary (`cmd/`, `internal/`) depends, directly or indirectly, on Go's `net` package, which is where all network I/O lives (`net/http`, `crypto/tls` and `golang.org/x/net` all depend on it). Those are also checked explicitly as a backstop. Pure parsing packages such as `net/url` and `net/netip` are allowed. Dev-time tools under `scripts/` are exempt.
 
 ## 12. Roadmap
 

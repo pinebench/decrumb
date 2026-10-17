@@ -210,7 +210,7 @@ func compileList(field string, patterns []string, wholeName bool) ([]*regexp.Reg
 
 // compilePattern compiles a pattern case-insensitively, like ClearURLs.
 // With wholeName set, the pattern must match an entire parameter name
-// (spec §6, step 6).
+// (spec §6, step 7).
 func compilePattern(pattern string, wholeName bool) (*regexp.Regexp, error) {
 	if pattern == "" {
 		return nil, errors.New("empty pattern")
