@@ -1,1 +1,32 @@
-{"providers": {}}
+{
+  "providers": {
+    "globalRules": {
+      "rules": [
+        "gbraid",
+        "wbraid",
+        "gad_source",
+        "gad_campaignid",
+        "gclsrc",
+        "ttclid",
+        "li_fat_id",
+        "epik",
+        "ScCid",
+        "_hsmi",
+        "_branch_match_id"
+      ],
+      "sources": {
+        "gbraid": "https://support.google.com/google-ads/answer/10417364",
+        "wbraid": "https://support.google.com/google-ads/answer/10417364",
+        "gad_source": "https://support.google.com/google-ads/answer/13327296",
+        "gad_campaignid": "https://support.google.com/analytics/answer/16479993",
+        "gclsrc": "https://support.google.com/sa360/answer/12979645",
+        "ttclid": "https://ads.tiktok.com/help/article/tiktok-click-id",
+        "li_fat_id": "https://learn.microsoft.com/en-us/linkedin/marketing/conversions/enabling-first-party-cookies",
+        "epik": "https://developers.pinterest.com/docs/track-conversions/track-conversions-in-the-api/",
+        "ScCid": "https://developers.snap.com/api/marketing-api/Conversions-API/UsingTheAPI",
+        "_hsmi": "https://knowledge.hubspot.com/email/links-in-emails-or-ctas-lead-to-an-error-page",
+        "_branch_match_id": "https://help.branch.io/developer-hub/docs/web-testing"
+      }
+    }
+  }
+}

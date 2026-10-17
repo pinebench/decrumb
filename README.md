@@ -33,6 +33,11 @@ unmodified; the exact upstream commit is recorded in
 [internal/rules/clearurls/SOURCE](internal/rules/clearurls/SOURCE). You can
 supply your own rules file with `--rules <file>`. See [NOTICE](NOTICE).
 
+decrumb also adds a few rules of its own in
+[internal/rules/overrides.json](internal/rules/overrides.json) (MIT), each
+with a link to the vendor documentation it's based on. They only add to the
+ClearURLs rules, never change them, and aren't used with `--rules`.
+
 decrumb is an independent project and is not endorsed by the ClearURLs project.
 
 ## License

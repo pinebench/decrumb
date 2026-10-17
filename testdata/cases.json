@@ -20,6 +20,46 @@
     "note": "globalRules: referralMarketing (ref) is removed by default, plus msclkid"
   },
   {
+    "input": "https://shop.example.com/product/123?gclid=Cj0KCQjw&gbraid=0AAAAADq&gad_source=1&gad_campaignid=12345678&color=blue",
+    "output": "https://shop.example.com/product/123?color=blue",
+    "note": "override (Google Ads): gbraid, gad_source and gad_campaignid are removed by our overrides, gclid by upstream globalRules"
+  },
+  {
+    "input": "https://www.example.com/landing?wbraid=CkQKCQjw&gclsrc=aw.ds&utm_source=google",
+    "output": "https://www.example.com/landing",
+    "note": "override (Google Ads): wbraid and gclsrc"
+  },
+  {
+    "input": "https://store.example.com/sale?ttclid=E.C.P.abc123&utm_campaign=spring",
+    "output": "https://store.example.com/sale",
+    "note": "override (TikTok): ttclid"
+  },
+  {
+    "input": "https://www.example.com/whitepaper?li_fat_id=1a2b3c4d-5e6f-7a8b&form=demo",
+    "output": "https://www.example.com/whitepaper?form=demo",
+    "note": "override (LinkedIn): li_fat_id"
+  },
+  {
+    "input": "https://www.example.com/recipe/42?epik=dj0yJnU9abc",
+    "output": "https://www.example.com/recipe/42",
+    "note": "override (Pinterest): epik"
+  },
+  {
+    "input": "https://www.example.com/app?ScCid=7b3a7917-a82a-47e8-9728-e1b3b045abb2",
+    "output": "https://www.example.com/app",
+    "note": "override (Snapchat): ScCid"
+  },
+  {
+    "input": "https://blog.example.com/post?utm_source=hs_email&_hsmi=123456789&_hsenc=p2ANqtz-abc",
+    "output": "https://blog.example.com/post",
+    "note": "override (HubSpot): _hsmi, next to upstream's _hsenc and utm_source"
+  },
+  {
+    "input": "https://www.example.com/item/9?_branch_match_id=1234567890&size=m",
+    "output": "https://www.example.com/item/9?size=m",
+    "note": "override (Branch): _branch_match_id"
+  },
+  {
     "input": "https://example.com/article?id=7&page=2#comments",
     "output": "https://example.com/article?id=7&page=2#comments",
     "note": "nothing to remove: the URL is returned unchanged"
