@@ -1,0 +1,252 @@
+[
+  {
+    "input": "https://example.com/page?utm_source=newsletter&utm_medium=email&id=7",
+    "output": "https://example.com/page?id=7",
+    "note": "globalRules: utm_* parameters are removed, unknown parameters are kept"
+  },
+  {
+    "input": "https://example.com/?fbclid=IwAR0abc",
+    "output": "https://example.com/",
+    "note": "globalRules: fbclid; when every parameter is removed the ? is dropped too"
+  },
+  {
+    "input": "https://shop.example.com/item?gclid=Cj0KCQ&color=red",
+    "output": "https://shop.example.com/item?color=red",
+    "note": "globalRules: gclid"
+  },
+  {
+    "input": "https://example.org/list?ref=homepage&page=2&msclkid=abc",
+    "output": "https://example.org/list?page=2",
+    "note": "globalRules: referralMarketing (ref) is removed by default, plus msclkid"
+  },
+  {
+    "input": "https://example.com/article?id=7&page=2#comments",
+    "output": "https://example.com/article?id=7&page=2#comments",
+    "note": "nothing to remove: the URL is returned unchanged"
+  },
+  {
+    "input": "  https://example.com/?utm_campaign=spring  ",
+    "output": "https://example.com/",
+    "note": "surrounding whitespace is trimmed"
+  },
+  {
+    "input": "example.com/page?utm_source=x",
+    "output": "https://example.com/page",
+    "note": "no scheme: https:// is added, then the URL is cleaned"
+  },
+  {
+    "input": "www.example.com/?id=7",
+    "output": "https://www.example.com/?id=7",
+    "note": "no scheme and nothing to remove: the output is still the normalized URL (changed stays false)"
+  },
+  {
+    "input": "example.com:8080/path?fbclid=x",
+    "output": "https://example.com:8080/path",
+    "note": "a host and port is not a scheme, so https:// is added"
+  },
+  {
+    "input": "https://example.com/page ?utm_source=x",
+    "output": "https://example.com/page%20",
+    "note": "a space before ? is percent-encoded, so removing the query can't leave trailing whitespace"
+  },
+  {
+    "input": "https://example.com/page #utm_source=x",
+    "output": "https://example.com/page%20",
+    "note": "a space before # is percent-encoded, so removing the fragment can't leave trailing whitespace"
+  },
+  {
+    "input": "https://example.com/?a &utm_source=1",
+    "output": "https://example.com/?a%20",
+    "note": "a space inside the query is percent-encoded and its parameter kept"
+  },
+  {
+    "input": "https://example.com/files/my file.pdf",
+    "output": "https://example.com/files/my%20file.pdf",
+    "note": "a space in the path is percent-encoded, as browsers do"
+  },
+  {
+    "input": "https://example.com/a b?utm_source=x",
+    "output": "https://example.com/a%C2%A0b",
+    "note": "Unicode whitespace (U+00A0) is percent-encoded using its UTF-8 bytes"
+  },
+  {
+    "input": "mailto:someone@example.com?subject=hi&utm_source=x",
+    "output": "mailto:someone@example.com?subject=hi&utm_source=x",
+    "note": "non-http scheme: returned unchanged"
+  },
+  {
+    "input": "ftp://files.example.com/file.txt?utm_source=x",
+    "output": "ftp://files.example.com/file.txt?utm_source=x",
+    "note": "non-http scheme: returned unchanged"
+  },
+  {
+    "input": "https://example.com/?utm_source=a&id=7&utm_source=b",
+    "output": "https://example.com/?id=7",
+    "note": "repeated parameters: every matching occurrence is removed"
+  },
+  {
+    "input": "https://example.com/?flag&utm_medium=x&q=",
+    "output": "https://example.com/?flag&q=",
+    "note": "valueless (flag) and empty-valued (q=) parameters are kept as they are"
+  },
+  {
+    "input": "https://example.com/?a=1&&utm_source=x&b=2",
+    "output": "https://example.com/?a=1&&b=2",
+    "note": "an empty piece (&&) is kept as it is"
+  },
+  {
+    "input": "https://example.com/?fbclid&id=7",
+    "output": "https://example.com/?id=7",
+    "note": "a valueless parameter is removed when a rule matches its name"
+  },
+  {
+    "input": "https://example.com/?id=7&",
+    "output": "https://example.com/?id=7&",
+    "note": "trailing & is kept when nothing is removed"
+  },
+  {
+    "input": "https://example.com/?utm%5Fsource=x&id=7",
+    "output": "https://example.com/?id=7",
+    "note": "encoded parameter name: utm%5Fsource is tested as utm_source"
+  },
+  {
+    "input": "https://example.com/search?q=caf%C3%A9+au+lait&utm_source=x&path=a%2Fb",
+    "output": "https://example.com/search?q=caf%C3%A9+au+lait&path=a%2Fb",
+    "note": "remaining parameters keep their original encoding (%C3%A9, +, %2F)"
+  },
+  {
+    "input": "https://example.com/?utm_source%zz=1&id=2",
+    "output": "https://example.com/?utm_source%zz=1&id=2",
+    "note": "a name with malformed percent-encoding is tested as written, and doesn't match"
+  },
+  {
+    "input": "https://example.com/page#utm_source",
+    "output": "https://example.com/page#utm_source",
+    "note": "a fragment without = is not treated as parameters and is left as it is"
+  },
+  {
+    "input": "https://example.com/app#/inbox/42",
+    "output": "https://example.com/app#/inbox/42",
+    "note": "a fragment route without = is left as it is"
+  },
+  {
+    "input": "https://example.com/page#utm_source=x&tab=2",
+    "output": "https://example.com/page#tab=2",
+    "note": "a fragment with = is treated as parameters"
+  },
+  {
+    "input": "https://example.com/page?id=1#fbclid=abc",
+    "output": "https://example.com/page?id=1",
+    "note": "when every fragment parameter is removed the # is dropped too"
+  },
+  {
+    "input": "https://example.com/page#:~:text=a=b",
+    "output": "https://example.com/page#:~:text=a=b",
+    "note": "text fragment: the value containing = is kept whole and nothing is rebuilt"
+  },
+  {
+    "input": "https://example.com/page#:~:text=a=b&utm_source=x",
+    "output": "https://example.com/page#:~:text=a=b",
+    "note": "text fragment next to a tracking parameter: only the tracker is removed"
+  },
+  {
+    "input": "HTTPS://WWW.EXAMPLE.COM/Page?UTM_SOURCE=x&id=1",
+    "output": "HTTPS://WWW.EXAMPLE.COM/Page?id=1",
+    "note": "rules are case-insensitive; uppercase scheme, host and path are kept"
+  },
+  {
+    "input": "https://www.amazon.com/dp/B000000000?tag=affiliate-20&th=1&psc=1",
+    "output": "https://www.amazon.com/dp/B000000000?psc=1",
+    "note": "amazon: tag (referralMarketing) and th (rules) are removed, psc is kept"
+  },
+  {
+    "input": "https://www.amazon.com/Some-Book/dp/B000000000/ref=sr_1_1?crid=2ABC&keywords=go&qid=1700000000&sr=8-1",
+    "output": "https://www.amazon.com/Some-Book/dp/B000000000",
+    "note": "amazon raw rule removes /ref=sr_1_1 from the path, then crid, keywords, qid and sr are removed"
+  },
+  {
+    "input": "https://www.amazon.co.uk/dp/B000000000/ref=cm_sw_r_cp?pd_rd_w=abc&pf_rd_p=def",
+    "output": "https://www.amazon.co.uk/dp/B000000000",
+    "note": "amazon country domain: raw rule and pd_rd_* / pf_rd_* parameters"
+  },
+  {
+    "input": "https://www.amazon.com/dp/B000000000/ref=sr_1_1#customerReviews",
+    "output": "https://www.amazon.com/dp/B000000000",
+    "note": "upstream amazon raw rule /ref=[^/?]* also removes a following fragment (upstream behavior, kept as is)"
+  },
+  {
+    "input": "https://WWW.AMAZON.COM/dp/B000000000?TAG=x",
+    "output": "https://WWW.AMAZON.COM/dp/B000000000",
+    "note": "uppercase host still matches the amazon provider and is kept uppercase"
+  },
+  {
+    "input": "https://www.amazon.com/s?k=go+book&crid=ABC&utm_source=x",
+    "output": "https://www.amazon.com/s?k=go+book",
+    "note": "per-provider exceptions: amazon is skipped for /s? pages, but amazon search (crid) and globalRules (utm_source) still apply"
+  },
+  {
+    "input": "https://mail.google.com/mail/u/0/?ved=abc&utm_source=x#inbox",
+    "output": "https://mail.google.com/mail/u/0/?ved=abc#inbox",
+    "note": "per-provider exceptions: google is skipped for Gmail (ved kept), globalRules still removes utm_source"
+  },
+  {
+    "input": "https://github.com/pinebench/decrumb?utm_source=x&email_token=abc",
+    "output": "https://github.com/pinebench/decrumb?utm_source=x",
+    "note": "per-provider exceptions: globalRules is skipped for github.com (utm_source kept), the github.com provider still removes email_token"
+  },
+  {
+    "input": "https://www.google.com/search?q=decrumb&ei=abc&ved=0ah&oq=decrumb&gs_lcrp=xyz&sourceid=chrome&ie=UTF-8",
+    "output": "https://www.google.com/search?q=decrumb",
+    "note": "google search page: ei, ved, oq, gs_lcrp, sourceid and ie are removed, q is kept"
+  },
+  {
+    "input": "https://www.google.com/url?q=https://example.com/page%3Futm_source%3Dx%26id%3D7&sa=D&ust=1",
+    "output": "https://example.com/page?id=7",
+    "note": "google redirect: the q target is decoded once, unwrapped, then cleaned"
+  },
+  {
+    "input": "https://www.google.com/url?url=https%3A%2F%2Fexample.com%2F",
+    "output": "https://example.com/",
+    "note": "google redirect with an encoded target in url="
+  },
+  {
+    "input": "https://www.google.com/url?q=https%253A%252F%252Fexample.com%252Fa%253Fb%253D1",
+    "output": "https://example.com/a?b=1",
+    "note": "double-encoded redirect target: decoded just enough rounds for https:// to appear"
+  },
+  {
+    "input": "https://www.google.com/amp/s/example.com/article",
+    "output": "https://example.com/article",
+    "note": "google AMP: the target has no scheme, so https:// is added"
+  },
+  {
+    "input": "https://www.google.com/amp/s/www.example.com/news/story.amp?utm_source=x",
+    "output": "https://www.example.com/news/story.amp",
+    "note": "google AMP target is cleaned after unwrapping"
+  },
+  {
+    "input": "https://l.facebook.com/l.php?u=https%3A%2F%2Fexample.com%2Fpage%3Fid%3D7%26fbclid%3DIwAR1&h=AT0abc",
+    "output": "https://example.com/page?id=7",
+    "note": "facebook redirect: u is decoded, unwrapped, then fbclid is removed"
+  },
+  {
+    "input": "https://lm.facebook.com/l.php?u=https%3A%2F%2Fexample.org%2F",
+    "output": "https://example.org/",
+    "note": "facebook redirect from the lm. subdomain"
+  },
+  {
+    "input": "https://www.google.com/url?q=https://l.facebook.com/l.php%3Fu%3Dhttps%253A%252F%252Fexample.com%252Fpage%253Futm_source%253Dfb%26h%3DAT0&sa=D",
+    "output": "https://example.com/page",
+    "note": "double-wrapped: google redirect to a facebook redirect, both unwrapped, then cleaned"
+  },
+  {
+    "input": "https://www.facebook.com/somepage?__tn__=K-R&eid=ARB&ref=bookmarks",
+    "output": "https://www.facebook.com/somepage",
+    "note": "facebook page parameters: __tn__, eid and ref"
+  },
+  {
+    "input": "https://m.facebook.com/story.php?story_fbid=123&id=456&mibextid=abc",
+    "output": "https://m.facebook.com/story.php?story_fbid=123&id=456",
+    "note": "facebook mobile subdomain: mibextid removed, story parameters kept"
+  }
+]
