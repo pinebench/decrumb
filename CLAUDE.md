@@ -29,7 +29,8 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 ## Layout
 
 ```
-cmd/decrumb/            main package (thin: wires flags to internal packages)
+cmd/decrumb/            main package (thin: calls cli.Run); main_test.go builds the binary (end-to-end)
+internal/cli/           the command line (spec §5): flags, args/stdin, plain/--explain/--json output, exit codes
 internal/rules/         load + validate + compile rules; merge overrides
 internal/rules/overrides.json  our own additions (MIT, extend-only, spec §8)
 internal/rules/clearurls/  data.min.json (LGPL-3.0, go:embed), SOURCE lock file, license copies
