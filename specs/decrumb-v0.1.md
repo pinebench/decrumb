@@ -51,8 +51,18 @@ Flags:
 
 - **Plain output:** one clean URL per line, same order as input.
 - **Errors** go to stderr. An invalid URL does not stop processing of the others.
-- **Exit codes:** `0` all good · `1` at least one invalid URL · `2` rules could not be loaded.
+- **Exit codes:** `0` success · `1` at least one invalid input line (everything else is still cleaned) · `2` usage error: unknown flag or missing flag value (the Unix convention and Go's `flag` default) · `3` the rules could not be loaded (nothing is cleaned; stderr says why). 0–2 follow the common convention; 3 is decrumb's own, so scripts can tell a broken `--rules` file apart from a bad input line.
+- Run with no URL arguments while stdin is an interactive terminal (nothing piped in), decrumb prints the usage text to stderr and exits `2` instead of waiting silently for input.
 - Empty or whitespace-only stdin lines are skipped (no output line for them).
+- URLs given as arguments take priority; stdin is read only when there are none.
+- **Line length limit: 2 MB** (Chrome's own maximum URL length), so every URL a browser can open is accepted and cleaned with the normal rules. A longer line is reported as invalid on stderr (exit code 1), reading continues with the next line, and stdout gets an **empty line** for it (not the junk itself) so output stays aligned. No chunked cleaning: rules match the whole URL, so splitting would give different results. Tests: a URL just under 2 MB cleans correctly; a line just over is rejected and the following line is still processed. (Measured on `main`: normal links ~34 µs; 2 MB URLs 0.1–0.6 s each on a slow 2-core machine, scaling linearly.)
+- **Invalid input lines are passed through unchanged** (trimmed) on stdout, so output stays aligned with input line by line; the error goes to stderr naming the line, and the exit code is 1. In `--json` the entry has `"output": null` and `"error"` set.
+- Windows line endings (`\r\n`) on stdin are accepted (a trailing `\r` is removed with the line ending); output always uses `\n`. Tests cover CRLF input explicitly.
+- `-h` / `--help` prints a short usage text with the flags and an example.
+- No colors in v0.1 (plain text in every terminal and pipe); colors may come in a later release.
+- `--json` always includes everything (removals with descriptions, unwrap hops); `--explain` only affects plain output.
+- **`--json` is streamed:** `{"results":[` is written first, then each result as soon as it's cleaned, then `]}`. The output is the same single valid JSON document, but memory stays constant and results appear while it runs. (If interrupted, the document is incomplete; the exit code shows it.) A test parses the output with a standard JSON parser.
+- `--explain` plain output shows each removed parameter with its provider and description (if any), raw-rule removals (e.g. `/ref=sr_1_1 (raw rule, amazon)`), each unwrap hop, and a note when the 5-hop limit was reached.
 
 ### `--explain` plain output (shape, final wording at implementer's discretion)
 ```
@@ -71,8 +81,9 @@ https://example.com/page
       "changed": true,
       "unwrapped": [],
       "removed": [
-        {"param": "utm_source", "provider": "globalRules", "description": "Campaign source: which site or newsletter sent you"}
+        {"param": "utm_source", "provider": "globalRules", "location": "query", "description": "Campaign source: which site or newsletter sent you"}
       ],
+      "hop_limit_reached": false,
       "error": null
     }
   ]
