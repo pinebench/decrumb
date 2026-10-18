@@ -3,6 +3,7 @@ package cleaner
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -141,6 +142,62 @@ func TestCleanInvalid(t *testing.T) {
 	}
 	if strings.Count(res.Err.Error(), "exa mple") != 1 {
 		t.Errorf("error should name the input once: %v", res.Err)
+	}
+}
+
+// TestInvalidMessages checks the exact error for each kind of invalid
+// input. Messages describe what the user typed, never our normalization:
+// no "%20" the user didn't type, no Go package names (spec §5).
+func TestInvalidMessages(t *testing.T) {
+	c := bundled(t)
+	tests := []struct {
+		input  string
+		reason string
+	}{
+		// Whitespace in the host, typed or percent-encoded.
+		{"not a url ::", "spaces are not allowed in the host"},
+		{"exa mple.com", "spaces are not allowed in the host"},
+		{"https://exa mple.com/a b", "spaces are not allowed in the host"},
+		{"https://exa%20mple.com/", "spaces are not allowed in the host"},
+		{"https://a.example:80 80/", "spaces are not allowed in the host"},
+		{"https://exa\tmple.com/", "whitespace is not allowed in the host"},
+		{"https://exa mple.com/", "whitespace is not allowed in the host"},
+		{"https://exa%C2%A0mple.com/", "whitespace is not allowed in the host"},
+		// No host.
+		{"http://", "no host"},
+		{"https:///path", "no host"},
+		{"//", "no host"},
+		{":", "no host"},
+		{"https://:80/", "no host"},
+		{"", "empty"},
+		{"   ", "empty"},
+		// Input url.Parse can't parse.
+		{"https://[::1", `missing ']' in host`},
+		{"https://a.example:port/", `invalid port ":port" after host`},
+		{"https://ex%41mple.com/", `"%41" is not allowed in the host`},
+		{"http://a.example/%zz", `invalid percent-encoding "%zz"`},
+		{"https://example.com/%", `invalid percent-encoding "%"`},
+		{"https://a\x00b.example/", "control characters are not allowed"},
+		{"https://a.example/\x7f", "control characters are not allowed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			res := c.Clean(tt.input)
+			want := fmt.Sprintf("invalid URL %q: %s", tt.input, tt.reason)
+			if res.Err == nil || res.Err.Error() != want {
+				t.Errorf("Clean(%q) error\n got  %v\n want %s", tt.input, res.Err, want)
+			}
+			if !errors.Is(res.Err, ErrInvalidURL) {
+				t.Error("error does not wrap ErrInvalidURL")
+			}
+		})
+	}
+
+	// Whitespace outside the host is fine: it's encoded, as browsers do.
+	for _, in := range []string{"https://example.com/a b", "https://a b@example.com/"} {
+		if res := c.Clean(in); res.Err != nil {
+			t.Errorf("Clean(%q): %v", in, res.Err)
+		}
 	}
 }
 
