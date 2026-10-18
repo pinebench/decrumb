@@ -1,0 +1,450 @@
+[
+  {
+    "name": "utm_source",
+    "provider": null,
+    "description": "Campaign source: names the site, newsletter or ad network that sent you.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/blog/spring-recipes?utm_source=newsletter"
+  },
+  {
+    "name": "utm_medium",
+    "provider": null,
+    "description": "Campaign medium: names the kind of link you clicked, such as email, banner or cpc.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/blog/spring-recipes?utm_medium=email"
+  },
+  {
+    "name": "utm_campaign",
+    "provider": null,
+    "description": "Campaign name: names the promotion or campaign the link belongs to.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/blog/spring-recipes?utm_campaign=spring_sale"
+  },
+  {
+    "name": "utm_term",
+    "provider": null,
+    "description": "Campaign term: names the paid search keyword that showed the ad.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/shoes/running?utm_term=running+shoes"
+  },
+  {
+    "name": "utm_content",
+    "provider": null,
+    "description": "Campaign content: tells apart different ads or links within the same campaign.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/shoes/running?utm_content=top_banner"
+  },
+  {
+    "name": "utm_id",
+    "provider": null,
+    "description": "Campaign ID: identifies the specific campaign or promotion behind the link.",
+    "source": "https://support.google.com/analytics/answer/10917952",
+    "example": "https://example.com/shoes/running?utm_id=summer24"
+  },
+  {
+    "name": "fbclid",
+    "provider": null,
+    "description": "Facebook click ID: lets Facebook connect this visit to the account that clicked.",
+    "source": "https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/fbp-and-fbc/",
+    "example": "https://example.com/article/city-council-vote?fbclid=IwAR2xK9mZq7bVt1cL0dPq3sR8uW5yE6fG4hJ2kN1oM"
+  },
+  {
+    "name": "gclid",
+    "provider": null,
+    "description": "Google Ads click ID: lets Google Ads connect this visit to the ad click.",
+    "source": "https://support.google.com/google-ads/answer/9744275",
+    "example": "https://example.com/pricing?gclid=Cj0KCQjw9vqyBhCKARIsAIIcLMG3hX2pQ7kZ"
+  },
+  {
+    "name": "msclkid",
+    "provider": null,
+    "description": "Microsoft Advertising click ID: lets Microsoft connect this visit to the ad click.",
+    "source": "https://learn.microsoft.com/en-us/advertising/campaign-management-service/offlineconversion?view=bingads-13",
+    "example": "https://example.com/pricing?msclkid=3f2a9c1b7d8e4f60a5b2c3d4e5f60718"
+  },
+  {
+    "name": "yclid",
+    "provider": null,
+    "description": "Yandex Direct click ID: lets Yandex connect this visit to the ad click.",
+    "source": "https://yandex.com/support/metrica/data/get-yclid.html",
+    "example": "https://example.com/catalog/kettles?yclid=7368412934021775359"
+  },
+  {
+    "name": "dclid",
+    "provider": null,
+    "description": "Google display click ID: lets Google's display ad tools connect this visit to the ad click.",
+    "source": "https://support.google.com/campaignmanager/answer/9182069",
+    "example": "https://example.com/offer?dclid=CJn5qY2r9ogDFQkHBgAdXyQ3Lw"
+  },
+  {
+    "name": "twclid",
+    "provider": null,
+    "description": "X Ads click ID: lets X connect this visit to the ad click.",
+    "source": "https://docs.x.com/x-ads-api/measurement/web-conversions",
+    "example": "https://example.com/signup?twclid=2-4k9x7q1m3n8b5v2c6z0p4r7t"
+  },
+  {
+    "name": "cmpid",
+    "provider": null,
+    "description": "Campaign ID: a common name for the campaign code a site reads into its analytics.",
+    "source": "https://blog.adobe.com/en/publish/2012/05/01/a-simple-display-advertising-tracking-solution-part-1",
+    "example": "https://example.com/deals?cmpid=DFA:12345:67890:24680"
+  },
+  {
+    "name": "s_cid",
+    "provider": null,
+    "description": "Adobe Analytics campaign code: a common name for the tracking code sites send to Adobe.",
+    "source": "https://blog.adobe.com/en/publish/2012/07/19/sitecatalyst-finance-fundamentals-external-campaign-performance-part-1",
+    "example": "https://example.com/news/launch?s_cid=sm-tw-2024-launch"
+  },
+  {
+    "name": "wt_mc",
+    "provider": null,
+    "description": "Mapp Intelligence media code: tells Mapp's analytics which campaign sent you.",
+    "source": "https://docs.mapp.com/docs/react-next-campaign",
+    "example": "https://example.com/magazine/issue-12?wt_mc=newsletter.march"
+  },
+  {
+    "name": "_openstat",
+    "provider": null,
+    "description": "Openstat tag: tells analytics tools such as Yandex Metrica which ad campaign sent you.",
+    "source": "https://yandex.com/support/metrica/en/general/source-tags",
+    "example": "https://example.com/promo?_openstat=adfox;moscow;discount;top"
+  },
+  {
+    "name": "mc_cid",
+    "provider": null,
+    "description": "Mailchimp campaign ID: identifies the Mailchimp email campaign that contained the link.",
+    "source": "https://mailchimp.com/developer/marketing/docs/e-commerce/",
+    "example": "https://example.com/shop/new-arrivals?mc_cid=4b8e2f1a9c"
+  },
+  {
+    "name": "mc_eid",
+    "provider": null,
+    "description": "Mailchimp email ID: identifies the recipient whose email contained the link.",
+    "source": "https://mailchimp.com/developer/marketing/docs/e-commerce/",
+    "example": "https://example.com/shop/new-arrivals?mc_eid=7d3c9a0e5f"
+  },
+  {
+    "name": "_hsenc",
+    "provider": null,
+    "description": "HubSpot identity tracking: identifies the contact who clicked a link in a HubSpot email.",
+    "source": "https://knowledge.hubspot.com/email/links-in-emails-or-ctas-lead-to-an-error-page",
+    "example": "https://example.com/webinar?_hsenc=p2ANqtz-9xKfLm3Qw7Rt2Yv8Bn4Cd6Ez1Ga5Hb0Ij"
+  },
+  {
+    "name": "mkt_tok",
+    "provider": null,
+    "description": "Marketo tracking token: lets Marketo follow your visit after you click a Marketo email.",
+    "source": "https://experienceleague.adobe.com/en/docs/experience-cloud-kcs/kbarticles/ka-28604",
+    "example": "https://example.com/whitepaper?mkt_tok=NzA0LUpXRi0yNjcAAAGQx7kL2mZ"
+  },
+  {
+    "name": "hsCtaTracking",
+    "provider": null,
+    "description": "HubSpot CTA tracking: records clicks on a HubSpot call-to-action button.",
+    "source": "https://knowledge.hubspot.com/ctas/calls-to-action-frequently-asked-questions",
+    "example": "https://example.com/demo?hsCtaTracking=6c2a1f4e-9b3d-4c7a-8e5f-1d2b3c4a5e6f%7C0a1b2c3d"
+  },
+  {
+    "name": "oly_enc_id",
+    "provider": null,
+    "description": "Omeda encrypted customer ID: lets the publisher's Omeda tracking recognize the reader.",
+    "source": "https://knowledgebase.omeda.com/omedaclientkb/cdp-olytics-overview",
+    "example": "https://example.com/industry-news/report?oly_enc_id=1234A5678901B2C"
+  },
+  {
+    "name": "vero_id",
+    "provider": null,
+    "description": "Vero user ID: identifies the email recipient who clicked, so Vero can recognize them.",
+    "source": "https://help.getvero.com/vero-1/customers/what-is-vero_id",
+    "example": "https://example.com/account/upgrade?vero_id=48213"
+  },
+  {
+    "name": "__s",
+    "provider": null,
+    "description": "Drip subscriber ID: undocumented by Drip; appears to identify the email recipient who clicked.",
+    "source": "https://rightmessage.com/help/integrating-rightmessage-with-drip-36rd9",
+    "example": "https://example.com/course/lesson-2?__s=x7k2m9q4w1e8r5t3y6u0"
+  },
+  {
+    "name": "_ga",
+    "provider": null,
+    "description": "Older Google Analytics linker: carries your Analytics visitor ID to another of the site's domains.",
+    "source": "https://www.simoahava.com/analytics/troubleshooting-cross-domain-tracking-in-google-analytics/",
+    "example": "https://example.com/checkout?_ga=2.123456789.987654321.1700000000-1234567890.1700000000"
+  },
+  {
+    "name": "_gl",
+    "provider": null,
+    "description": "Google tag linker: carries your Google measurement cookie IDs to another of the site's domains.",
+    "source": "https://support.google.com/analytics/answer/10071811",
+    "example": "https://example.com/checkout?_gl=1*1x2y3z4*_ga*MTIzNDU2Nzg5LjE3MDAwMDAwMDA."
+  },
+  {
+    "name": "srsltid",
+    "provider": null,
+    "description": "Google Merchant Center result ID: lets the shop connect your visit to a Google listing click.",
+    "source": "https://support.google.com/merchants/answer/11127659",
+    "example": "https://example.com/products/ceramic-mug?srsltid=AfmBOoq7xK2mZ9vT1cL0dPq3sR8uW5yE"
+  },
+  {
+    "name": "gad_source",
+    "provider": null,
+    "description": "Google Ads source: identifies where the ad click came from, for Google's conversion measurement.",
+    "source": "https://support.google.com/google-ads/answer/13327296",
+    "example": "https://example.com/running-shoes?gad_source=1&gclid=Cj0KCQjw9vqyBhCKARIsAIIcLMG3hX2pQ7kZ"
+  },
+  {
+    "name": "ref",
+    "provider": null,
+    "description": "Referral tag: names the site, page or partner that sent you; each site picks its own values.",
+    "source": "https://ghost.org/help/custom-sources/",
+    "example": "https://example.com/blog/release-notes?ref=news.example.org"
+  },
+  {
+    "name": "igsh",
+    "provider": "instagram",
+    "description": "Instagram share ID: undocumented; appears to identify the share that produced the link.",
+    "source": "https://github.com/ClearURLs/Rules/issues/102",
+    "example": "https://www.instagram.com/reel/C8xYz12AbCd/?igsh=MWQ1ZGUxMzBkMA=="
+  },
+  {
+    "name": "igshid",
+    "provider": "instagram",
+    "description": "Instagram share ID, older name: undocumented; appears to identify the share behind the link.",
+    "source": "https://github.com/brave/brave-browser/issues/11580",
+    "example": "https://www.instagram.com/p/C1a2B3c4D5e/?igshid=MzRlODBiNWFlZA=="
+  },
+  {
+    "name": "si",
+    "provider": "youtube",
+    "description": "YouTube share ID: undocumented; appears to identify the share that produced the link.",
+    "source": "https://github.com/ClearURLs/Rules/issues/192",
+    "example": "https://youtu.be/dQw4w9WgXcQ?si=Kq3vX9bL2mN8pQ7r"
+  },
+  {
+    "name": "si",
+    "provider": "spotify.com",
+    "description": "Spotify share ID: undocumented; appears to link listening back to the share it came from.",
+    "source": "https://wearebumper.com/blog/spotify-rolls-out-trackable-sharing-links",
+    "example": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=1a2b3c4d5e6f4a7b"
+  },
+  {
+    "name": "feature",
+    "provider": "youtube",
+    "description": "YouTube link origin: undocumented; appears to record where the link came from, e.g. share.",
+    "source": "https://github.com/ClearURLs/Rules/issues/204",
+    "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&feature=share"
+  },
+  {
+    "name": "pp",
+    "provider": "youtube",
+    "description": "YouTube page context: undocumented; YouTube adds it to video links on feeds and channel pages.",
+    "source": "https://news.ycombinator.com/item?id=28005638",
+    "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&pp=ygUJZ29sYW5nIDEy"
+  },
+  {
+    "name": "ref_src",
+    "provider": "twitter",
+    "description": "Twitter referral source: undocumented; appears to record which page or search sent you.",
+    "source": "https://github.com/ClearURLs/Rules/issues/204",
+    "example": "https://twitter.com/NASA?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor"
+  },
+  {
+    "name": "ref_src",
+    "provider": "x",
+    "description": "X referral source: undocumented; appears to record which page or search sent you.",
+    "source": "https://github.com/ClearURLs/Rules/issues/204",
+    "example": "https://x.com/NASA?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor"
+  },
+  {
+    "name": "s",
+    "provider": "twitter",
+    "description": "Twitter share source: undocumented; appears to record the app a post was shared from.",
+    "source": "https://github.com/ClearURLs/Rules/issues/53",
+    "example": "https://twitter.com/jack/status/20?s=20"
+  },
+  {
+    "name": "s",
+    "provider": "x",
+    "description": "X share source: undocumented; appears to record the app a post was shared from.",
+    "source": "https://github.com/ClearURLs/Rules/issues/53",
+    "example": "https://x.com/jack/status/20?s=46"
+  },
+  {
+    "name": "t",
+    "provider": "twitter",
+    "description": "Twitter share token: undocumented; added to copied post links and appears tied to the sharer.",
+    "source": "https://github.com/brave/brave-browser/issues/26756",
+    "example": "https://twitter.com/jack/status/20?s=20&t=ksx0KrMgYm-0gmdQk3UIjQ"
+  },
+  {
+    "name": "t",
+    "provider": "x",
+    "description": "X share token: undocumented; added to copied post links and appears tied to the sharer.",
+    "source": "https://github.com/brave/brave-browser/issues/26756",
+    "example": "https://x.com/jack/status/20?t=fbfMCHbAyrg4S2VfF85uTg&s=19"
+  },
+  {
+    "name": "mibextid",
+    "provider": "facebook",
+    "description": "Facebook share tag: undocumented; appears on Facebook links shared outside Facebook.",
+    "source": "https://github.com/ClearURLs/Rules/issues/83",
+    "example": "https://www.facebook.com/share/p/1AbCdEfGhI/?mibextid=wwXIfr"
+  },
+  {
+    "name": "__tn__",
+    "provider": "facebook",
+    "description": "Facebook navigation tag: undocumented; appears on links inside Facebook, purpose not public.",
+    "source": "https://github.com/jakubboucek/kill-fbclid/issues/2",
+    "example": "https://www.facebook.com/NASA/posts/1234567890123456?__tn__=-R"
+  },
+  {
+    "name": "trk",
+    "provider": "LinkedIn",
+    "description": "LinkedIn tracking tag: undocumented; appears to name the LinkedIn page element you clicked.",
+    "source": "https://github.com/ClearURLs/Rules/issues/252",
+    "example": "https://www.linkedin.com/company/example-co/?trk=public_post_feed-actor-name"
+  },
+  {
+    "name": "share_id",
+    "provider": "reddit",
+    "description": "Reddit share ID: undocumented; appears to identify the share that produced the link.",
+    "source": "https://github.com/ClearURLs/Rules/issues/89",
+    "example": "https://www.reddit.com/r/golang/comments/1g5abcd/go_release_notes/?share_id=Xy3kP9vQ2mN8wR4t"
+  },
+  {
+    "name": "ved",
+    "provider": "google",
+    "description": "Google result click data: undocumented; appears to record which result element you clicked.",
+    "source": "https://serpapi.com/blog/google-search-parameters/",
+    "example": "https://www.google.com/search?q=golang&ved=2ahUKEwjL7Y2r9ogDAxVfVkEAHXyQ3LwQ4dUDCBA"
+  },
+  {
+    "name": "ei",
+    "provider": "google",
+    "description": "Google search ID: undocumented; appears to identify the search and when it started.",
+    "source": "https://serpapi.com/blog/google-search-parameters/",
+    "example": "https://www.google.com/search?q=golang&ei=kKcSZ6WvLdGkhbIP0ZqT0Ag"
+  },
+  {
+    "name": "oq",
+    "provider": "google",
+    "description": "Google typed query: undocumented; appears to hold what you typed before picking a suggestion.",
+    "source": "https://serpapi.com/blog/google-search-parameters/",
+    "example": "https://www.google.com/search?q=golang+generics&oq=golang+gen"
+  },
+  {
+    "name": "gs_lcrp",
+    "provider": "google",
+    "description": "Chrome search box data: undocumented; Chrome adds it when you search from the address bar.",
+    "source": "https://github.com/ClearURLs/Rules/issues/310",
+    "example": "https://www.google.com/search?q=golang&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCDE5NzBqMGo3qAIAsAIA&sourceid=chrome&ie=UTF-8"
+  },
+  {
+    "name": "sca_esv",
+    "provider": "google",
+    "description": "Google search token: undocumented; Google adds it to results links, purpose not public.",
+    "source": "https://github.com/ClearURLs/Rules/issues/272",
+    "example": "https://www.google.com/search?q=golang&sca_esv=6f8a2c1d9e3b4a75"
+  },
+  {
+    "name": "cvid",
+    "provider": "bing",
+    "description": "Bing search ID: undocumented; appears to identify a search session on Bing.",
+    "source": "https://github.com/ClearURLs/Rules/issues/303",
+    "example": "https://www.bing.com/search?q=golang&cvid=5B3F7E69B5B4481CB7237A0DBBA305D2"
+  },
+  {
+    "name": "tag",
+    "provider": "amazon",
+    "description": "Amazon Associates tracking ID: credits the affiliate who shared the link for purchases.",
+    "source": "https://affiliate-program.amazon.com/help/node/topic/G6253GFSARDQENZR",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?tag=examplesite-20"
+  },
+  {
+    "name": "qid",
+    "provider": "amazon",
+    "description": "Amazon search timestamp: undocumented; appears to record when the search that led here ran.",
+    "source": "https://www.joehxblog.com/amazon-url-anatomy-dissection/",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?keywords=wireless+mouse&qid=1729245600"
+  },
+  {
+    "name": "sr",
+    "provider": "amazon",
+    "description": "Amazon result position: undocumented; appears to record where the item was in search results.",
+    "source": "https://mcwain.net/how-to/url_parameters/",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?keywords=wireless+mouse&sr=8-4"
+  },
+  {
+    "name": "crid",
+    "provider": "amazon",
+    "description": "Amazon search reference: undocumented; appears on links clicked from Amazon search results.",
+    "source": "https://github.com/ClearURLs/Rules/issues/51",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?crid=3D1K4MEK1XDXA&keywords=wireless+mouse"
+  },
+  {
+    "name": "pd_rd_*",
+    "provider": "amazon",
+    "description": "Amazon recommendation data: undocumented; appears on links from product recommendation rows.",
+    "source": "https://github.com/AdguardTeam/AdguardFilters/issues/85274",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?pd_rd_w=Ab3Cd&pd_rd_r=0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b"
+  },
+  {
+    "name": "pf_rd_*",
+    "provider": "amazon",
+    "description": "Amazon page placement data: undocumented; appears on links from product carousels.",
+    "source": "https://github.com/AdguardTeam/AdguardFilters/issues/85274",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?pf_rd_p=8f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f&pf_rd_r=7KQ2M9X4W1E8R5T3Y6U0"
+  },
+  {
+    "name": "linkCode",
+    "provider": "amazon",
+    "description": "Amazon link code: undocumented; appears on Associates links next to the affiliate tag.",
+    "source": "https://www.joehxblog.com/amazon-url-anatomy-dissection/",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?linkCode=ll1&tag=examplesite-20"
+  },
+  {
+    "name": "ascsubtag",
+    "provider": "amazon",
+    "description": "Amazon Associates sub-tag: undocumented by Amazon; affiliate tools call it a per-click SubID.",
+    "source": "https://wecantrack.com/amazon-integration/",
+    "example": "https://www.amazon.com/dp/B09HM94VDS?tag=examplesite-20&ascsubtag=post-482-sidebar"
+  },
+  {
+    "name": "otracker",
+    "provider": "flipkart",
+    "description": "Flipkart click tracker: undocumented; appears to name the page section you clicked from.",
+    "source": "https://gitlab.com/ClearURLs/rules/-/work_items/99",
+    "example": "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4?pid=MOBGTAGPTB3VS24W&otracker=search"
+  },
+  {
+    "name": "lid",
+    "provider": "flipkart",
+    "description": "Flipkart listing ID: undocumented; appears to identify the seller listing you clicked.",
+    "source": "https://gitlab.com/ClearURLs/rules/-/work_items/99",
+    "example": "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4?pid=MOBGTAGPTB3VS24W&lid=LSTMOBGTAGPTB3VS24WVZNSC6"
+  },
+  {
+    "name": "srno",
+    "provider": "flipkart",
+    "description": "Flipkart result position: undocumented; appears to record where the item was in a list.",
+    "source": "https://gitlab.com/ClearURLs/rules/-/work_items/99",
+    "example": "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac6485515ae4?pid=MOBGTAGPTB3VS24W&srno=s_1_1"
+  },
+  {
+    "name": "spm",
+    "provider": null,
+    "description": "Alibaba traffic tag: tells Alibaba-run sites where the visitor came from.",
+    "source": "https://help.aliyun.com/en/compute-nest/deliver-services",
+    "example": "https://www.aliexpress.com/item/1005006123456789.html?spm=a2g0o.productlist.main.1.6f2a3c1b"
+  },
+  {
+    "name": "smid",
+    "provider": "nytimes.com",
+    "description": "New York Times share tag: undocumented; appears to record how the article was shared.",
+    "source": "https://libguides.lcc.edu/nytdigitaled/nytineducation",
+    "example": "https://www.nytimes.com/2021/03/23/climate/ocean-blue-economy-business.html?smid=url-share"
+  }
+]

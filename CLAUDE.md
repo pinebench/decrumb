@@ -38,7 +38,8 @@ internal/matcher/       providers for a URL
 internal/scheme/        "has a scheme?" check shared by decode and cleaner (spec §6 step 1)
 internal/decode/        redirect target decoding (linear time, spec §6)
 internal/cleaner/       the cleaning pipeline (spec §6 steps 1–8); fuzz seeds in its testdata/fuzz/
-internal/explain/       descriptions for the top 30 parameters
+internal/explain/       descriptions for the 60 parameters in spec §7; Describe(name, provider)
+internal/explain/params.json  the descriptions (MIT, go:embed; also read by the future extension)
 testdata/cases.json     shared input → output cases (spec §10; also used by the future TS extension)
 scripts/update-rules    dev-time rules update (download pinned commit, write SOURCE)
 specs/                  specs
