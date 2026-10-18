@@ -1,0 +1,17 @@
+{
+  "providers": {
+    "globalRules": {
+      "urlPattern": ".*",
+      "rules": ["utm_source", "fbclid"]
+    },
+    "site": {
+      "urlPattern": "^https?://([a-z0-9-]+\\.)?site\\.example",
+      "rules": ["sid"],
+      "rawRules": ["/ref=[^/?#]*"]
+    },
+    "go": {
+      "urlPattern": "^https?://go\\.example",
+      "redirections": ["^https?://go\\.example/\\?u=(.*)"]
+    }
+  }
+}

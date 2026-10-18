@@ -1,26 +1,28 @@
 // Command decrumb removes tracking parameters from URLs, fully offline.
 //
-// This is a placeholder: for now it only supports --version.
+// All the work happens in internal/cli; main only connects it to the real
+// process (arguments, stdin, stdout, stderr and the exit code).
 package main
 
 import (
-	"flag"
-	"fmt"
 	"os"
+
+	"github.com/pinebench/decrumb/internal/cli"
 )
 
 // version is overridden at release time with -ldflags "-X main.version=...".
 var version = "dev"
 
 func main() {
-	showVersion := flag.Bool("version", false, "print version")
-	flag.Parse()
+	os.Exit(cli.Run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, cli.Config{
+		Version:         version,
+		StdinIsTerminal: stdinIsTerminal,
+	}))
+}
 
-	if *showVersion {
-		fmt.Printf("decrumb %s\n", version)
-		return
-	}
-
-	fmt.Fprintln(os.Stderr, "decrumb: not implemented yet (only --version works)")
-	os.Exit(1)
+// stdinIsTerminal reports whether stdin is an interactive terminal (a
+// "character device") rather than a pipe or a file.
+func stdinIsTerminal() bool {
+	info, err := os.Stdin.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
