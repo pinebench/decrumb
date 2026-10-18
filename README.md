@@ -20,7 +20,7 @@ This puts `decrumb` in `$(go env GOPATH)/bin`. Prebuilt releases will follow.
 ## Usage
 
 ```
-decrumb [flags] [url ...]
+decrumb [flags] [url ...] (flags may appear anywhere)
 
 Flags:
   --explain        show what was removed and why
@@ -31,8 +31,9 @@ Flags:
 ```
 
 Pass one or more URLs as arguments, or pipe them in on stdin, one per line.
-decrumb prints one clean URL per line, in the same order. Flags go before the
-URLs.
+decrumb prints one clean URL per line, in the same order. Flags may come
+before, between or after the URLs (`decrumb URL --json` works); after `--`,
+every argument is a URL, even one that starts with `-`.
 
 ```
 $ decrumb 'https://example.com/page?utm_source=newsletter&id=7'
@@ -60,10 +61,14 @@ http://
 ```
 
 - Empty and whitespace-only lines are skipped. Windows line endings (`\r\n`)
-  are fine; output always uses `\n`.
+  are fine; output always uses `\n`. A UTF-8 byte order mark at the very
+  start of stdin (added by Windows PowerShell 5.1 and older Notepad) is
+  ignored.
 - A URL without a scheme gets `https://`.
 - An invalid line is passed through unchanged (trimmed) and reported on
-  stderr with its line number, so output lines stay aligned with input lines.
+  stderr with its line number and the reason, e.g.
+  `decrumb: line 3: invalid URL "not a url ::": spaces are not allowed in the host`,
+  so output lines stay aligned with input lines.
 - Lines longer than 2 MB (Chrome's maximum URL length) are reported on stderr
   and get an empty output line; reading continues.
 - Non-web URLs such as `mailto:` are passed through unchanged.
