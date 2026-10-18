@@ -82,6 +82,17 @@ func TestBinary(t *testing.T) {
 		}
 	})
 
+	t.Run("BOM at the start of stdin, and a flag after the URL", func(t *testing.T) {
+		stdout, stderr, code := runBinary(t, bin, "\xEF\xBB\xBF"+cases[0].Input+"\r\n")
+		if code != 0 || stderr != "" || stdout != cases[0].Output+"\n" {
+			t.Errorf("BOM: exit %d, stdout %q, stderr %q", code, stdout, stderr)
+		}
+		stdout, _, code = runBinary(t, bin, "", cases[0].Input, "--json")
+		if code != 0 || !strings.HasPrefix(stdout, "{\"results\":[") {
+			t.Errorf("flag after URL: exit %d, stdout %q", code, stdout)
+		}
+	})
+
 	t.Run("version set at build time", func(t *testing.T) {
 		stdout, _, code := runBinary(t, bin, "", "--version")
 		if code != 0 || !strings.HasPrefix(stdout, "decrumb e2e-test\n") {

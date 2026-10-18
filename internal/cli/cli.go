@@ -5,6 +5,7 @@
 package cli
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -24,10 +25,11 @@ const (
 	exitRules   = 3 // the rules could not be loaded
 )
 
-const usage = `Usage: decrumb [flags] [url ...]
+const usage = `Usage: decrumb [flags] [url ...] (flags may appear anywhere)
 
 Removes tracking parameters from URLs, offline. URLs are read from the
-arguments or, if there are none, from stdin, one per line.
+arguments or, if there are none, from stdin, one per line. After --,
+every argument is a URL, even one that starts with -.
 
 Flags:
   --explain        show what was removed and why
@@ -66,16 +68,30 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, cfg Config) i
 	rulesFlag := fs.String("rules", "", "")
 	versionFlag := fs.Bool("version", false, "")
 
-	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) { // -h or --help
-			io.WriteString(stdout, usage)
-			return exitOK
+	// Flags may appear anywhere, and "--" ends them. fs.Parse stops at the
+	// first argument that isn't a flag, so take that one as a URL and parse
+	// the rest again.
+	flagArgs, urls := splitAtDoubleDash(fs, args)
+	var argURLs []string
+	for {
+		if err := fs.Parse(flagArgs); err != nil {
+			if errors.Is(err, flag.ErrHelp) { // -h or --help
+				io.WriteString(stdout, usage)
+				return exitOK
+			}
+			// flag has already written the reason, e.g. "flag provided
+			// but not defined: -x".
+			io.WriteString(stderr, usage)
+			return exitUsage
 		}
-		// flag has already written the reason, e.g. "flag provided but
-		// not defined: -x".
-		io.WriteString(stderr, usage)
-		return exitUsage
+		if fs.NArg() == 0 {
+			break
+		}
+		argURLs = append(argURLs, fs.Arg(0))
+		flagArgs = fs.Args()[1:]
 	}
+	urls = append(argURLs, urls...)
+
 	rulesSet := false
 	fs.Visit(func(f *flag.Flag) { rulesSet = rulesSet || f.Name == "rules" })
 	if rulesSet && *rulesFlag == "" {
@@ -88,7 +104,6 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, cfg Config) i
 		return printVersion(stdout, stderr, cfg.Version)
 	}
 
-	urls := fs.Args()
 	if len(urls) == 0 && cfg.StdinIsTerminal != nil && cfg.StdinIsTerminal() {
 		io.WriteString(stderr, usage)
 		return exitUsage
@@ -128,6 +143,41 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer, cfg Config) i
 	return exitOK
 }
 
+// splitAtDoubleDash splits args at the first "--" that ends the flags. A
+// "--" that is the value of a flag, as in --rules --, doesn't count.
+func splitAtDoubleDash(fs *flag.FlagSet, args []string) (flagArgs, urls []string) {
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--" {
+			return args[:i], args[i+1:]
+		}
+		if takesValue(fs, args[i]) {
+			i++ // skip the flag's value
+		}
+	}
+	return args, nil
+}
+
+// takesValue reports whether arg is a flag, such as --rules, whose value is
+// the next argument: a defined flag that isn't a bool and has no "=value".
+func takesValue(fs *flag.FlagSet, arg string) bool {
+	name, ok := strings.CutPrefix(arg, "-")
+	if !ok || strings.Contains(name, "=") {
+		return false
+	}
+	name = strings.TrimPrefix(name, "-") // --rules as well as -rules
+	f := fs.Lookup(name)
+	if f == nil {
+		return false
+	}
+	// Bool flags implement IsBoolFlag; they never take the next argument.
+	b, isBool := f.Value.(interface{ IsBoolFlag() bool })
+	return !isBool || !b.IsBoolFlag()
+}
+
+// bom is the UTF-8 byte order mark. Windows PowerShell 5.1 and older
+// Notepad put one at the start of text, so it is dropped there (spec §5).
+var bom = []byte{0xEF, 0xBB, 0xBF}
+
 // errTooLong is the error for an input line over maxLineLen.
 var errTooLong = fmt.Errorf("line is longer than 2 MB (%d bytes)", maxLineLen)
 
@@ -149,6 +199,9 @@ func cleanLines(r io.Reader, c *cleaner.Cleaner, report func(string, cleaner.Res
 		if tooLong {
 			report(where, cleaner.Result{Err: errTooLong})
 			continue
+		}
+		if n == 1 {
+			line = bytes.TrimPrefix(line, bom) // only at the very start of stdin
 		}
 		s := string(line)
 		if strings.TrimSpace(s) == "" {

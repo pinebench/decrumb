@@ -174,6 +174,136 @@ func TestBundledRules(t *testing.T) {
 	}
 }
 
+// TestBOM checks that a UTF-8 byte order mark is dropped at the very start
+// of stdin only (spec §5).
+func TestBOM(t *testing.T) {
+	const bom = "\xEF\xBB\xBF"
+	tests := []struct {
+		name    string
+		stdin   string
+		wantOut string
+		wantErr string // substring of stderr; "" means stderr must be empty
+	}{
+		{"BOM and URL on line 1", bom + "https://a.example/?utm_source=x\nhttps://b.example/\n", "https://a.example/\nhttps://b.example/\n", ""},
+		{"BOM with CRLF", bom + "https://a.example/?utm_source=x\r\n", "https://a.example/\n", ""},
+		{"BOM only", bom, "", ""},
+		{"BOM and a newline only", bom + "\n", "", ""},
+		{"BOM then an empty first line", bom + "\nhttps://a.example/\n", "https://a.example/\n", ""},
+		// A BOM anywhere else is left alone: it's part of the text, so the
+		// cleaner sees no scheme and adds https:// in front of it.
+		{
+			name:    "BOM inside a later line is left alone",
+			stdin:   "https://a.example/\n" + bom + "https://b.example/\n",
+			wantOut: "https://a.example/\nhttps://" + bom + "https://b.example/\n",
+		},
+		{
+			name:    "only one BOM is dropped",
+			stdin:   bom + bom + "https://a.example/\n",
+			wantOut: "https://" + bom + "https://a.example/\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := run(t, tt.stdin, "--rules", fixture)
+			if got.stdout != tt.wantOut {
+				t.Errorf("stdout = %q, want %q", got.stdout, tt.wantOut)
+			}
+			if tt.wantErr == "" && got.stderr != "" {
+				t.Errorf("stderr = %q, want nothing", got.stderr)
+			}
+			if !strings.Contains(got.stderr, tt.wantErr) {
+				t.Errorf("stderr = %q, want it to contain %q", got.stderr, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestFlagsAnywhere checks that flags may come before, between or after
+// URLs, and that "--" ends the flags (spec §5).
+func TestFlagsAnywhere(t *testing.T) {
+	const a, b = "https://a.example/?utm_source=x", "https://b.example/?fbclid=y"
+	jsonOf := func(urls ...string) string {
+		return run(t, "", append([]string{"--json", "--rules", fixture}, urls...)...).stdout
+	}
+	tests := []struct {
+		name     string
+		args     []string
+		wantOut  string
+		wantCode int
+	}{
+		{"flags before URLs", []string{"--rules", fixture, "--json", a, b}, jsonOf(a, b), exitOK},
+		{"flags after URLs", []string{a, b, "--json", "--rules", fixture}, jsonOf(a, b), exitOK},
+		{"flags between URLs", []string{a, "--json", b, "--rules", fixture}, jsonOf(a, b), exitOK},
+		{"single-dash flag after a URL", []string{a, "-json", "-rules", fixture}, jsonOf(a), exitOK},
+		{"--rules=file after a URL", []string{a, "--rules=" + fixture}, "https://a.example/\n", exitOK},
+		{
+			name:     "-- ends the flags: what follows is a URL even if it looks like a flag",
+			args:     []string{"--rules", fixture, a, "--", "--json", "-x"},
+			wantOut:  "https://a.example/\nhttps://--json\nhttps://-x\n",
+			wantCode: exitOK,
+		},
+		{
+			name:     "a second -- is a URL",
+			args:     []string{"--rules", fixture, "--", "--", a},
+			wantOut:  "https://--\nhttps://a.example/\n",
+			wantCode: exitOK,
+		},
+		{
+			name:     "-- as the last argument",
+			args:     []string{"--rules", fixture, a, "--"},
+			wantOut:  "https://a.example/\n",
+			wantCode: exitOK,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := run(t, "", tt.args...)
+			if got.stdout != tt.wantOut || got.code != tt.wantCode {
+				t.Errorf("got exit %d, stdout:\n%s\nwant exit %d, stdout:\n%s\nstderr: %s", got.code, got.stdout, tt.wantCode, tt.wantOut, got.stderr)
+			}
+		})
+	}
+
+	t.Run("--version after a URL", func(t *testing.T) {
+		got := run(t, "", a, "--version")
+		if !strings.HasPrefix(got.stdout, "decrumb 1.2.3\n") || got.code != exitOK {
+			t.Errorf("got %+v, want the version", got)
+		}
+	})
+}
+
+// TestFlagsAnywhereUsageErrors checks that a bad flag after a URL is still
+// a usage error, and that "--" as the value of --rules isn't the end of
+// the flags.
+func TestFlagsAnywhereUsageErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+		want    int
+	}{
+		{"unknown flag after a URL", []string{"https://a.example/", "--nope"}, "flag provided but not defined: -nope\n", exitUsage},
+		{"unknown flag between URLs", []string{"https://a.example/", "-x", "https://b.example/"}, "flag provided but not defined: -x\n", exitUsage},
+		{"missing value at the end", []string{"https://a.example/", "--rules"}, "flag needs an argument: -rules\n", exitUsage},
+		{"bad bool value after a URL", []string{"https://a.example/", "--json=maybe"}, "invalid boolean value", exitUsage},
+		{"-- as the value of --rules", []string{"--rules", "--", "https://a.example/"}, "decrumb: --: file not found\n", exitRules},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := run(t, "", tt.args...)
+			if got.code != tt.want {
+				t.Errorf("exit code = %d, want %d", got.code, tt.want)
+			}
+			if !strings.Contains(got.stderr, tt.wantErr) {
+				t.Errorf("stderr = %q, want %q", got.stderr, tt.wantErr)
+			}
+			if got.stdout != "" {
+				t.Errorf("stdout = %q, want nothing", got.stdout)
+			}
+		})
+	}
+}
+
 func TestExitCodes(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "missing.json")
 	tests := []struct {
