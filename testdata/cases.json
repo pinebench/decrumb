@@ -308,5 +308,10 @@
     "input": "https://m.facebook.com/story.php?story_fbid=123&id=456&mibextid=abc",
     "output": "https://m.facebook.com/story.php?story_fbid=123&id=456",
     "note": "facebook mobile subdomain: mibextid removed, story parameters kept"
+  },
+  {
+    "input": "https://пример.рф/статья?utm_source=newsletter&id=7",
+    "output": "https://пример.рф/статья?id=7",
+    "note": "international domain name: accepted and cleaned; the host is left as typed (only invisible characters make a host invalid)"
   }
 ]

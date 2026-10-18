@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -179,27 +180,39 @@ func TestBundledRules(t *testing.T) {
 func TestBOM(t *testing.T) {
 	const bom = "\xEF\xBB\xBF"
 	tests := []struct {
-		name    string
-		stdin   string
-		wantOut string
-		wantErr string // substring of stderr; "" means stderr must be empty
+		name     string
+		stdin    string
+		wantOut  string
+		wantErr  string // substring of stderr; "" means stderr must be empty
+		wantCode int
 	}{
-		{"BOM and URL on line 1", bom + "https://a.example/?utm_source=x\nhttps://b.example/\n", "https://a.example/\nhttps://b.example/\n", ""},
-		{"BOM with CRLF", bom + "https://a.example/?utm_source=x\r\n", "https://a.example/\n", ""},
-		{"BOM only", bom, "", ""},
-		{"BOM and a newline only", bom + "\n", "", ""},
-		{"BOM then an empty first line", bom + "\nhttps://a.example/\n", "https://a.example/\n", ""},
-		// A BOM anywhere else is left alone: it's part of the text, so the
-		// cleaner sees no scheme and adds https:// in front of it.
+		{"BOM and URL on line 1", bom + "https://a.example/?utm_source=x\nhttps://b.example/\n", "https://a.example/\nhttps://b.example/\n", "", exitOK},
+		{"BOM with CRLF", bom + "https://a.example/?utm_source=x\r\n", "https://a.example/\n", "", exitOK},
+		{"BOM only", bom, "", "", exitOK},
+		{"BOM and a newline only", bom + "\n", "", "", exitOK},
+		{"BOM then an empty first line", bom + "\nhttps://a.example/\n", "https://a.example/\n", "", exitOK},
+		// A BOM anywhere else is not dropped. It's an invisible character in
+		// the host, so the line is invalid: passed through, with an error.
 		{
-			name:    "BOM inside a later line is left alone",
-			stdin:   "https://a.example/\n" + bom + "https://b.example/\n",
-			wantOut: "https://a.example/\nhttps://" + bom + "https://b.example/\n",
+			name:     "BOM inside a later line is invalid",
+			stdin:    "https://a.example/\n" + bom + "https://b.example/\nhttps://c.example/\n",
+			wantOut:  "https://a.example/\n" + bom + "https://b.example/\nhttps://c.example/\n",
+			wantErr:  "decrumb: line 2: invalid URL " + strconv.Quote(bom+"https://b.example/") + ": invisible characters are not allowed in the host",
+			wantCode: exitInvalid,
 		},
 		{
-			name:    "only one BOM is dropped",
-			stdin:   bom + bom + "https://a.example/\n",
-			wantOut: "https://" + bom + "https://a.example/\n",
+			name:     "only one BOM is dropped",
+			stdin:    bom + bom + "https://a.example/\n",
+			wantOut:  bom + "https://a.example/\n",
+			wantErr:  "decrumb: line 1: invalid URL",
+			wantCode: exitInvalid,
+		},
+		{
+			name:     "zero-width space in the host",
+			stdin:    "https://pay\xE2\x80\x8Bpal.com/?utm_source=x\n",
+			wantOut:  "https://pay\xE2\x80\x8Bpal.com/?utm_source=x\n",
+			wantErr:  "decrumb: line 1: invalid URL " + strconv.Quote("https://pay\xE2\x80\x8Bpal.com/?utm_source=x") + ": invisible characters are not allowed in the host",
+			wantCode: exitInvalid,
 		},
 	}
 	for _, tt := range tests {
@@ -207,6 +220,9 @@ func TestBOM(t *testing.T) {
 			got := run(t, tt.stdin, "--rules", fixture)
 			if got.stdout != tt.wantOut {
 				t.Errorf("stdout = %q, want %q", got.stdout, tt.wantOut)
+			}
+			if got.code != tt.wantCode {
+				t.Errorf("exit code = %d, want %d", got.code, tt.wantCode)
 			}
 			if tt.wantErr == "" && got.stderr != "" {
 				t.Errorf("stderr = %q, want nothing", got.stderr)

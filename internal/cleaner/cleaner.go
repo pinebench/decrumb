@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -162,7 +163,7 @@ func normalize(input string) (s string, isHTTP bool, err error) {
 		// Check the host before encoding whitespace, so the reason can
 		// say what the user typed.
 		host = hostPart(s[n:])
-		if reason := whitespaceInHost(host); reason != "" {
+		if reason := badHostChars(host); reason != "" {
 			return invalid(reason)
 		}
 		s = encodeSpaces(s)
@@ -182,8 +183,13 @@ func normalize(input string) (s string, isHTTP bool, err error) {
 		return invalid("no host")
 	}
 	// Backstop: url.Parse decodes the host, so check it again.
-	if reason := whitespaceInHost(u.Host); reason != "" {
+	if reason := badHostChars(u.Host); reason != "" {
 		return invalid(reason)
+	}
+	if port := u.Port(); port != "" {
+		if n, err := strconv.Atoi(port); err != nil || n > 65535 {
+			return invalid(fmt.Sprintf("invalid port %q (must be 0–65535)", port))
+		}
 	}
 	return s, true, nil
 }
@@ -200,10 +206,16 @@ func hostPart(rest string) string {
 	return rest
 }
 
-// whitespaceInHost returns the reason a host is invalid because it contains
-// whitespace, typed as is or percent-encoded (%20, %C2%A0), or "" if it
-// contains none.
-func whitespaceInHost(host string) string {
+// badHostChars returns the reason a host is invalid because of the
+// characters in it, typed as is or percent-encoded (%20, %E2%80%8B), or ""
+// if it is fine:
+//   - whitespace;
+//   - invisible characters (Unicode format characters, category Cf, such
+//     as U+200B zero-width space, U+00AD soft hyphen or U+FEFF BOM). They
+//     make lookalike domains, so decrumb never returns such a host as clean.
+//
+// International domain names such as пример.рф contain neither.
+func badHostChars(host string) string {
 	if decoded, err := url.PathUnescape(host); err == nil {
 		host += decoded // check both forms
 	}
@@ -212,8 +224,14 @@ func whitespaceInHost(host string) string {
 		return "spaces are not allowed in the host"
 	case strings.ContainsFunc(host, unicode.IsSpace):
 		return "whitespace is not allowed in the host"
+	case strings.ContainsFunc(host, isInvisible):
+		return "invisible characters are not allowed in the host"
 	}
 	return ""
+}
+
+func isInvisible(r rune) bool {
+	return unicode.Is(unicode.Cf, r)
 }
 
 // isControl reports whether r is an ASCII control character, which

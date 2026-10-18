@@ -69,6 +69,10 @@ http://
   stderr with its line number and the reason, e.g.
   `decrumb: line 3: invalid URL "not a url ::": spaces are not allowed in the host`,
   so output lines stay aligned with input lines.
+- A host containing invisible characters (zero-width spaces, soft hyphens, a
+  byte order mark) is invalid: such lookalike domains are a phishing trick,
+  so decrumb warns instead of handing the link back as clean. International
+  domain names such as `пример.рф` are fine. Ports must be 0–65535.
 - Lines longer than 2 MB (Chrome's maximum URL length) are reported on stderr
   and get an empty output line; reading continues.
 - Non-web URLs such as `mailto:` are passed through unchanged.

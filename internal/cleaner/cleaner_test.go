@@ -163,6 +163,21 @@ func TestInvalidMessages(t *testing.T) {
 		{"https://exa\tmple.com/", "whitespace is not allowed in the host"},
 		{"https://exa mple.com/", "whitespace is not allowed in the host"},
 		{"https://exa%C2%A0mple.com/", "whitespace is not allowed in the host"},
+		// Invisible characters (Unicode Cf) in the host, raw or encoded:
+		// U+FEFF BOM, U+200B zero-width space, U+00AD soft hyphen.
+		{"https://pay\xEF\xBB\xBFpal.com/", "invisible characters are not allowed in the host"},
+		{"https://pay%EF%BB%BFpal.com/", "invisible characters are not allowed in the host"},
+		{"\xEF\xBB\xBFhttps://example.com/", "invisible characters are not allowed in the host"},
+		{"https://pay\xE2\x80\x8Bpal.com/?utm_source=x", "invisible characters are not allowed in the host"},
+		{"https://pay%E2%80%8Bpal.com/", "invisible characters are not allowed in the host"},
+		{"pay\xE2\x80\x8Bpal.com", "invisible characters are not allowed in the host"},
+		{"https://pay\xC2\xADpal.com/", "invisible characters are not allowed in the host"},
+		{"https://pay%C2%ADpal.com/", "invisible characters are not allowed in the host"},
+		{"https://example.com\xE2\x80\x8B:443/", "invisible characters are not allowed in the host"},
+		// Port range.
+		{"https://example.com:65536/", `invalid port "65536" (must be 0–65535)`},
+		{"https://example.com:99999999999/", `invalid port "99999999999" (must be 0–65535)`},
+		{"example.com:70000", `invalid port "70000" (must be 0–65535)`},
 		// No host.
 		{"http://", "no host"},
 		{"https:///path", "no host"},
@@ -198,6 +213,58 @@ func TestInvalidMessages(t *testing.T) {
 		if res := c.Clean(in); res.Err != nil {
 			t.Errorf("Clean(%q): %v", in, res.Err)
 		}
+	}
+}
+
+// TestValidHosts checks that the host checks don't reject real hosts:
+// international domain names, ports at the ends of the range, and
+// invisible characters outside the host.
+func TestValidHosts(t *testing.T) {
+	c := bundled(t)
+	tests := []struct{ input, want string }{
+		{"https://пример.рф/?utm_source=x&id=1", "https://пример.рф/?id=1"},
+		{"https://xn--e1afmkfd.xn--p1ai/?utm_source=x", "https://xn--e1afmkfd.xn--p1ai/"},
+		{"https://bücher.de/", "https://bücher.de/"},
+		{"https://example.com:0/", "https://example.com:0/"},
+		{"https://example.com:65535/?utm_source=x", "https://example.com:65535/"},
+		{"https://example.com:/", "https://example.com:/"}, // empty port, as url.Parse allows
+		{"https://[::1]:8080/", "https://[::1]:8080/"},
+		{"https://example.com/a\xE2\x80\x8Bb?q=\xC2\xAD", "https://example.com/a\xE2\x80\x8Bb?q=\xC2\xAD"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			res := c.Clean(tt.input)
+			if res.Err != nil || res.Output != tt.want {
+				t.Errorf("Clean(%q) = %q, %v; want %q", tt.input, res.Output, res.Err, tt.want)
+			}
+		})
+	}
+}
+
+// TestRedirectIntoInvisibleHost checks that decrumb never unwraps a
+// redirect into a host with invisible characters (spec §6, steps 1 and 5):
+// the redirect link is kept, so nobody is handed a lookalike domain.
+func TestRedirectIntoInvisibleHost(t *testing.T) {
+	c := bundled(t)
+	for _, in := range []string{
+		"https://www.google.com/url?q=https%3A%2F%2Fpay%E2%80%8Bpal.com%2Flogin&sa=D",
+		"https://www.google.com/url?q=https://pay\xE2\x80\x8Bpal.com/login&sa=D",
+		"https://www.google.com/url?q=https%3A%2F%2Fpay%25E2%2580%258Bpal.com%2Flogin&sa=D", // double-encoded
+	} {
+		res := c.Clean(in)
+		if res.Err != nil {
+			t.Errorf("Clean(%q): %v", in, res.Err)
+			continue
+		}
+		if len(res.Unwrapped) != 0 || !strings.HasPrefix(res.Output, "https://www.google.com/url?") {
+			t.Errorf("Clean(%q) unwrapped to %q (hops %q)", in, res.Output, res.Unwrapped)
+		}
+	}
+
+	// The same redirect into a normal host is unwrapped.
+	res := c.Clean("https://www.google.com/url?q=https%3A%2F%2Fpaypal.com%2Flogin&sa=D")
+	if res.Output != "https://paypal.com/login" {
+		t.Errorf("normal redirect: got %q", res.Output)
 	}
 }
 
