@@ -8,13 +8,12 @@ It's the first product of **Pinebench** (`github.com/pinebench`): small, useful,
 - The approved spec is **`specs/decrumb-v0.1.md`**. Build exactly what it says.
 - If the spec is ambiguous, contradicts itself, or seems wrong, **stop and ask**. Don't silently pick an interpretation or "improve" the scope. Spec changes are decided outside this repo and then written back into the spec file.
 - Anything listed as out of scope stays out, even if it's easy to add.
+- **Never merge your own PRs** (no `gh pr merge`, no pushing to `main`). The owner merges only after CI is green and the module has been reviewed in the Claude project against the spec.
 
 ## How we work
 
-- **One module at a time**, in the spec's order: rules → matcher → cleaner → explain → cli.
-- Each module gets its own branch (`module/<name>`) and pull request into `main`.
-- When a module is finished, **stop**. Post a short summary: what was built, test coverage, any deviation from the spec and why, and open questions. The owner reviews it against the spec before the next module starts.
-- **Never merge your own PRs** (no `gh pr merge`, no pushing to `main`). The owner merges only after CI is green and the module has been reviewed in the Claude project against the spec.
+- Build what the spec says; for spec'd modules, one module per branch (`module/<name>`) and PR.
+- Process, branches, commits and releases follow the workspace rules.
 - The owner is learning Go. Write simple, idiomatic, readable Go over clever Go, and briefly explain non-obvious idioms in the module summary (not in long code comments).
 
 ## Non-negotiables
@@ -39,7 +38,7 @@ internal/matcher/       providers for a URL
 internal/scheme/        "has a scheme?" check shared by decode and cleaner (spec §6 step 1)
 internal/decode/        redirect target decoding (linear time, spec §6)
 internal/cleaner/       the cleaning pipeline (spec §6 steps 1–8); fuzz seeds in its testdata/fuzz/
-internal/explain/       descriptions for the 60 parameters in spec §7; Describe(name, provider)
+internal/explain/       descriptions for the 60 parameter names (64 entries) in spec §7; Describe(name, provider)
 internal/explain/params.json  the descriptions (MIT, go:embed; also read by the future extension)
 testdata/cases.json     shared input → output cases (spec §10; also used by the future TS extension)
 scripts/update-rules    dev-time rules update (download pinned commit, write SOURCE)
@@ -77,8 +76,7 @@ govulncheck ./...               # golang.org/x/vuln
 
 ## Commits & PRs
 
-- Conventional commits: `feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`.
-- Small, focused commits. PR description: what changed, which spec section it implements, how it was tested.
+- PR description: what changed, which spec section it implements, and how it was tested.
 
 ## Naming
 
