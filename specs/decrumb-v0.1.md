@@ -58,7 +58,11 @@ Flags:
 - **Line length limit: 2 MB** (Chrome's own maximum URL length), so every URL a browser can open is accepted and cleaned with the normal rules. A longer line is reported as invalid on stderr (exit code 1), reading continues with the next line, and stdout gets an **empty line** for it (not the junk itself) so output stays aligned. No chunked cleaning: rules match the whole URL, so splitting would give different results. Tests: a URL just under 2 MB cleans correctly; a line just over is rejected and the following line is still processed. (Measured on `main`: normal links ~34 µs; 2 MB URLs 0.1–0.6 s each on a slow 2-core machine, scaling linearly.)
 - **Invalid input lines are passed through unchanged** (trimmed) on stdout, so output stays aligned with input line by line; the error goes to stderr naming the line, and the exit code is 1. In `--json` the entry has `"output": null` and `"error"` set.
 - Windows line endings (`\r\n`) on stdin are accepted (a trailing `\r` is removed with the line ending); output always uses `\n`. Tests cover CRLF input explicitly.
-- `-h` / `--help` prints a short usage text with the flags and an example.
+- `-h` / `--help` prints a short usage text with the flags and an example, to **stdout**, exit `0`. An unknown flag prints Go's message plus the usage to stderr, exit `2`; `--rules ""` is also a usage error.
+- **Flags are accepted anywhere** on the command line (`decrumb URL --json` works), like `git`, `curl` and `grep`. `--` ends flag parsing: everything after it is a URL.
+- A **UTF-8 BOM** at the very start of stdin is dropped (Windows PowerShell 5.1 and older Notepad add one); a BOM anywhere else is left alone.
+- **Error messages describe what the user typed**, never decrumb's internal normalization (no `%20` the user didn't type). E.g. `invalid URL "not a url ::": spaces are not allowed in the host`.
+- An empty URL **argument** is invalid (exit `1`); empty stdin lines are skipped as above. A read error on stdin exits `1`, and `--json` output is still closed as a valid document. In `--json`, invalid lines are also reported on stderr, and a line over the length limit has `"input": ""` (the line isn't kept, so memory stays constant). `--version` always describes the bundled rules, even with `--rules`.
 - No colors in v0.1 (plain text in every terminal and pipe); colors may come in a later release.
 - `--json` always includes everything (removals with descriptions, unwrap hops); `--explain` only affects plain output.
 - **`--json` is streamed:** `{"results":[` is written first, then each result as soon as it's cleaned, then `]}`. The output is the same single valid JSON document, but memory stays constant and results appear while it runs. (If interrupted, the document is incomplete; the exit code shows it.) A test parses the output with a standard JSON parser.
@@ -145,7 +149,7 @@ https://example.com/page
 ### Loading behavior (decided in the rules module)
 - Empty patterns are rejected. Unknown JSON fields are ignored, so new upstream fields don't break loading.
 - Rule and referral patterns match the **whole** parameter name, compiled as `(?i)^(?:pattern)$`. This matches ClearURLs' own behavior (it tests `^rule$`). Known consequence: Amazon's `[^a-z%0-9]adId` matches `_adId` but not `adId`, exactly as in ClearURLs; we add an override only if a plain `adId` tracker is actually observed.
-- Errors from a user's `--rules` file must be readable without knowing Go: the **cli** module turns JSON type errors into messages like `rules.json: provider "p": "rules" must be a list of strings`.
+- Errors from a user's `--rules` file must be readable without knowing Go, e.g. `rules.json: provider "p": "rules" must be a list of strings`. They're produced in the **rules** package, where the error happens; the cli prints them and exits `3`.
 
 ### Regex compatibility
 The rules are written for JavaScript regexes; Go uses RE2. All 1,095 patterns in the current rules file (checked 2026-10-15) compile with Go's `regexp`. A unit test must compile every pattern in the bundled file, so a future rules update with an incompatible pattern fails CI instead of failing at runtime. Patterns are compiled case-insensitively (`(?i)`), matching ClearURLs.
