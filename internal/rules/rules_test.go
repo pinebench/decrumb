@@ -187,7 +187,7 @@ func TestInvalidInput(t *testing.T) {
 		{
 			name:    "not an object",
 			input:   `[]`,
-			wantErr: []string{"invalid JSON"},
+			wantErr: []string{`must be a JSON object with a "providers" object`},
 		},
 		{
 			name:    "missing providers",
@@ -202,7 +202,7 @@ func TestInvalidInput(t *testing.T) {
 		{
 			name:    "providers is a list",
 			input:   `{"providers": []}`,
-			wantErr: []string{"invalid JSON"},
+			wantErr: []string{`"providers" must be an object`},
 		},
 		{
 			name:    "missing urlPattern",
@@ -281,10 +281,55 @@ func TestInvalidInput(t *testing.T) {
 	}
 }
 
+// TestReadableErrors checks the exact text of errors a --rules user sees
+// for a broken file: no Go type names (spec §6, "Loading behavior").
+func TestReadableErrors(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string // after "<path>: "
+	}{
+		{"malformed JSON", `{"providers": {`, "invalid JSON at line 1, column 15: unexpected end of JSON input"},
+		{"syntax error on a later line", "{\"providers\": {\n  \"p\": {,}\n}}", "invalid JSON at line 2, column 9: invalid character ',' looking for beginning of object key string"},
+		{"not an object", `[]`, `the file must be a JSON object with a "providers" object`},
+		{"providers is a list", `{"providers": []}`, `"providers" must be an object`},
+		{"provider is a string", `{"providers": {"p": "a"}}`, `provider "p": must be an object`},
+		{"rules is a string", `{"providers": {"p": {"urlPattern": "a", "rules": "utm_source"}}}`, `provider "p": "rules" must be a list of strings`},
+		{"rules has a number", `{"providers": {"p": {"urlPattern": "a", "rules": ["a", 1]}}}`, `provider "p": "rules" must be a list of strings`},
+		{"redirections is an object", `{"providers": {"p": {"urlPattern": "a", "redirections": {}}}}`, `provider "p": "redirections" must be a list of strings`},
+		{"urlPattern is a number", `{"providers": {"p": {"urlPattern": 42}}}`, `provider "p": "urlPattern" must be a string`},
+		{"completeProvider is a string", `{"providers": {"p": {"urlPattern": "a", "completeProvider": "yes"}}}`, `provider "p": "completeProvider" must be true or false`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeTemp(t, tt.input)
+			_, err := LoadFile(path)
+			if err == nil {
+				t.Fatal("expected an error, got nil")
+			}
+			if want := path + ": " + tt.want; err.Error() != want {
+				t.Errorf("got  %s\nwant %s", err, want)
+			}
+		})
+	}
+}
+
+func TestOverrideRuleCount(t *testing.T) {
+	n, err := OverrideRuleCount()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The first override entries (spec §8): 11 globalRules rules.
+	if n < 11 {
+		t.Errorf("OverrideRuleCount() = %d, want at least 11", n)
+	}
+}
+
 func TestLoadFileMissing(t *testing.T) {
-	_, err := LoadFile(filepath.Join(t.TempDir(), "nope.json"))
-	if err == nil || !strings.Contains(err.Error(), "nope.json") {
-		t.Errorf("got %v, want an error naming the file", err)
+	path := filepath.Join(t.TempDir(), "nope.json")
+	_, err := LoadFile(path)
+	if err == nil || err.Error() != path+": file not found" {
+		t.Errorf("got %v, want %q", err, path+": file not found")
 	}
 }
 
