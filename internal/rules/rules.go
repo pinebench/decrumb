@@ -5,14 +5,17 @@
 package rules
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/pinebench/decrumb/internal/rules/clearurls"
 )
@@ -72,12 +75,39 @@ func LoadBundled() (*Rules, error) {
 	return loadWithOverrides(clearurls.Data, overridesJSON)
 }
 
+// OverrideRuleCount returns the number of patterns in our overrides file,
+// counting every list (rules, referralMarketing, rawRules, exceptions and
+// redirections) of every provider. --version prints it.
+func OverrideRuleCount() (int, error) {
+	providers, err := parse(overridesJSON)
+	if err != nil {
+		return 0, fmt.Errorf("overrides: %w", err)
+	}
+	n := 0
+	for _, p := range providers {
+		n += len(p.Rules) + len(p.ReferralMarketing) + len(p.RawRules) +
+			len(p.Exceptions) + len(p.Redirections)
+	}
+	return n, nil
+}
+
 // LoadFile returns the rules in the file at path, used exactly as given:
 // overrides are not applied (spec §8, --rules).
+//
+// The file is the user's, so every error names the path and is written to
+// be readable without knowing Go (spec §6, "Loading behavior").
 func LoadFile(path string) (*Rules, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		// The OS error text differs per platform; say it plainly instead.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("%s: file not found", path)
+		}
+		var pathErr *fs.PathError
+		if errors.As(err, &pathErr) {
+			err = pathErr.Err // drop the "open <path>:" prefix; we add the path
+		}
+		return nil, fmt.Errorf("%s: cannot read the file: %w", path, err)
 	}
 	providers, err := parse(data)
 	if err != nil {
@@ -114,7 +144,14 @@ func parse(data []byte) (map[string]providerJSON, error) {
 		Providers map[string]json.RawMessage `json:"providers"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("invalid JSON: %w", err)
+		var typeErr *json.UnmarshalTypeError
+		if errors.As(err, &typeErr) {
+			if typeErr.Field == "" {
+				return nil, errors.New(`the file must be a JSON object with a "providers" object`)
+			}
+			return nil, errors.New(`"providers" must be an object`)
+		}
+		return nil, syntaxError(data, err)
 	}
 	if doc.Providers == nil {
 		return nil, errors.New(`missing "providers" object`)
@@ -124,11 +161,58 @@ func parse(data []byte) (map[string]providerJSON, error) {
 	for name, raw := range doc.Providers {
 		var p providerJSON
 		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, fmt.Errorf("provider %q: %w", name, err)
+			return nil, fmt.Errorf("provider %q: %w", name, providerTypeError(err))
 		}
 		providers[name] = p
 	}
 	return providers, nil
+}
+
+// syntaxError describes malformed JSON, with the line and column where
+// the problem was found when encoding/json reports it.
+func syntaxError(data []byte, err error) error {
+	var syntaxErr *json.SyntaxError
+	if !errors.As(err, &syntaxErr) {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	// Offset counts the bytes read, including the one that was wrong.
+	before := data[:min(max(int(syntaxErr.Offset)-1, 0), len(data))]
+	line := bytes.Count(before, []byte("\n")) + 1
+	column := len(before) - bytes.LastIndexByte(before, '\n')
+	return fmt.Errorf("invalid JSON at line %d, column %d: %s", line, column, syntaxErr.Error())
+}
+
+// fieldTypes says, in plain words, what each provider field must be.
+var fieldTypes = map[string]string{
+	"urlPattern":        "a string",
+	"completeProvider":  "true or false",
+	"forceRedirection":  "true or false",
+	"rules":             "a list of strings",
+	"referralMarketing": "a list of strings",
+	"rawRules":          "a list of strings",
+	"exceptions":        "a list of strings",
+	"redirections":      "a list of strings",
+}
+
+// providerTypeError turns encoding/json's type error for a provider, which
+// names Go types ("cannot unmarshal string into Go struct field
+// providerJSON.rules of type []string"), into a plain one:
+// `"rules" must be a list of strings`.
+func providerTypeError(err error) error {
+	var typeErr *json.UnmarshalTypeError
+	if !errors.As(err, &typeErr) {
+		return err
+	}
+	// Field is a path such as "rules" or "rules.0"; the first part is the
+	// provider field.
+	field, _, _ := strings.Cut(typeErr.Field, ".")
+	if field == "" {
+		return errors.New("must be an object")
+	}
+	if want, ok := fieldTypes[field]; ok {
+		return fmt.Errorf("%q must be %s", field, want)
+	}
+	return fmt.Errorf("%q has the wrong type", field)
 }
 
 // merge adds extra to base, extend-only (spec §8): new providers are added,

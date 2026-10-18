@@ -51,8 +51,22 @@ Flags:
 
 - **Plain output:** one clean URL per line, same order as input.
 - **Errors** go to stderr. An invalid URL does not stop processing of the others.
-- **Exit codes:** `0` all good · `1` at least one invalid URL · `2` rules could not be loaded.
+- **Exit codes:** `0` success · `1` at least one invalid input line (everything else is still cleaned) · `2` usage error: unknown flag or missing flag value (the Unix convention and Go's `flag` default) · `3` the rules could not be loaded (nothing is cleaned; stderr says why). 0–2 follow the common convention; 3 is decrumb's own, so scripts can tell a broken `--rules` file apart from a bad input line.
+- Run with no URL arguments while stdin is an interactive terminal (nothing piped in), decrumb prints the usage text to stderr and exits `2` instead of waiting silently for input.
 - Empty or whitespace-only stdin lines are skipped (no output line for them).
+- URLs given as arguments take priority; stdin is read only when there are none.
+- **Line length limit: 2 MB** (Chrome's own maximum URL length), so every URL a browser can open is accepted and cleaned with the normal rules. A longer line is reported as invalid on stderr (exit code 1), reading continues with the next line, and stdout gets an **empty line** for it (not the junk itself) so output stays aligned. No chunked cleaning: rules match the whole URL, so splitting would give different results. Tests: a URL just under 2 MB cleans correctly; a line just over is rejected and the following line is still processed. (Measured on `main`: normal links ~34 µs; 2 MB URLs 0.1–0.6 s each on a slow 2-core machine, scaling linearly.)
+- **Invalid input lines are passed through unchanged** (trimmed) on stdout, so output stays aligned with input line by line; the error goes to stderr naming the line, and the exit code is 1. In `--json` the entry has `"output": null` and `"error"` set.
+- Windows line endings (`\r\n`) on stdin are accepted (a trailing `\r` is removed with the line ending); output always uses `\n`. Tests cover CRLF input explicitly.
+- `-h` / `--help` prints a short usage text with the flags and an example, to **stdout**, exit `0`. An unknown flag prints Go's message plus the usage to stderr, exit `2`; `--rules ""` is also a usage error.
+- **Flags are accepted anywhere** on the command line (`decrumb URL --json` works), like `git`, `curl` and `grep`. `--` ends flag parsing: everything after it is a URL.
+- A **UTF-8 BOM** at the very start of stdin is dropped (Windows PowerShell 5.1 and older Notepad add one); a BOM anywhere else is left alone.
+- **Error messages describe what the user typed**, never decrumb's internal normalization (no `%20` the user didn't type). E.g. `invalid URL "not a url ::": spaces are not allowed in the host`.
+- An empty URL **argument** is invalid (exit `1`); empty stdin lines are skipped as above. A read error on stdin exits `1`, and `--json` output is still closed as a valid document. In `--json`, invalid lines are also reported on stderr, and a line over the length limit has `"input": ""` (the line isn't kept, so memory stays constant). `--version` always describes the bundled rules, even with `--rules`.
+- No colors in v0.1 (plain text in every terminal and pipe); colors may come in a later release.
+- `--json` always includes everything (removals with descriptions, unwrap hops); `--explain` only affects plain output.
+- **`--json` is streamed:** `{"results":[` is written first, then each result as soon as it's cleaned, then `]}`. The output is the same single valid JSON document, but memory stays constant and results appear while it runs. (If interrupted, the document is incomplete; the exit code shows it.) A test parses the output with a standard JSON parser.
+- `--explain` plain output shows each removed parameter with its provider and description (if any), raw-rule removals (e.g. `/ref=sr_1_1 (raw rule, amazon)`), each unwrap hop, and a note when the 5-hop limit was reached.
 
 ### `--explain` plain output (shape, final wording at implementer's discretion)
 ```
@@ -71,8 +85,9 @@ https://example.com/page
       "changed": true,
       "unwrapped": [],
       "removed": [
-        {"param": "utm_source", "provider": "globalRules", "description": "Campaign source: which site or newsletter sent you"}
+        {"param": "utm_source", "provider": "globalRules", "location": "query", "description": "Campaign source: which site or newsletter sent you"}
       ],
+      "hop_limit_reached": false,
       "error": null
     }
   ]
@@ -85,7 +100,7 @@ https://example.com/page
 
 ## 6. Cleaning logic (per URL)
 
-1. Trim leading and trailing whitespace. Then **percent-encode every whitespace character left inside the URL**, the way browsers do (ASCII space, tab, newline and Unicode whitespace such as U+00A0, using their UTF-8 bytes: space → `%20`, U+00A0 → `%C2%A0`). No other characters are changed. This keeps the meaning of values like `?a &utm=1` (→ `?a%20`), keeps pasted links like `my file.pdf` working, and makes cleaning idempotent. If the input starts with `//` (protocol-relative, e.g. copied from HTML), prepend `https:`. Otherwise, if there's no scheme, add `https://`. "Has a scheme" uses the same rule as redirect decoding (one shared helper): `mailto:x` has a scheme; `example.com:8080/path` is a host and port, so it gets `https://`. Whitespace encoding applies to http(s) URLs only. Parse; if it can't be parsed, has no host, or has whitespace in the host (including encoded, e.g. `%C2%A0`), it's **invalid**: report an error (exit code 1).
+1. Trim leading and trailing whitespace. Then **percent-encode every whitespace character left inside the URL**, the way browsers do (ASCII space, tab, newline and Unicode whitespace such as U+00A0, using their UTF-8 bytes: space → `%20`, U+00A0 → `%C2%A0`). No other characters are changed. This keeps the meaning of values like `?a &utm=1` (→ `?a%20`), keeps pasted links like `my file.pdf` working, and makes cleaning idempotent. If the input starts with `//` (protocol-relative, e.g. copied from HTML), prepend `https:`. Otherwise, if there's no scheme, add `https://`. "Has a scheme" uses the same rule as redirect decoding (one shared helper): `mailto:x` has a scheme; `example.com:8080/path` is a host and port, so it gets `https://`. Whitespace encoding applies to http(s) URLs only. Parse; if it can't be parsed, has no host, has whitespace in the host (including encoded, e.g. `%C2%A0`), has **invisible characters in the host** (Unicode format characters, category Cf, raw or percent-encoded: the BOM U+FEFF, zero-width spaces such as U+200B, the soft hyphen U+00AD, …), or has a **port outside 0–65535**, it's **invalid**: report an error (exit code 1). Invisible characters make lookalike domains (`pay​pal.com`), a classic phishing trick, so decrumb warns instead of handing such a link back as clean. International domain names (e.g. `пример.рф`) are unaffected. The same checks apply to redirect targets (step 5), so decrumb never unwraps into such a host.
 2. If the scheme is not `http`/`https`, return the input unchanged (only trimmed).
 3. Collect the providers whose `urlPattern` matches (site-specific providers + `globalRules`). **Order:** site-specific providers first (sorted by name in byte order, so capitalized names come first), then `globalRules`. This order decides which provider is credited for a removal (the first one whose rule matches) and which redirection is tried first.
 4. **Exceptions are per provider** (like ClearURLs): if a provider's **exception** matches the URL, that provider is skipped for this URL; every other matching provider still applies. A URL is left unchanged only if every matching provider is skipped.
@@ -134,7 +149,7 @@ https://example.com/page
 ### Loading behavior (decided in the rules module)
 - Empty patterns are rejected. Unknown JSON fields are ignored, so new upstream fields don't break loading.
 - Rule and referral patterns match the **whole** parameter name, compiled as `(?i)^(?:pattern)$`. This matches ClearURLs' own behavior (it tests `^rule$`). Known consequence: Amazon's `[^a-z%0-9]adId` matches `_adId` but not `adId`, exactly as in ClearURLs; we add an override only if a plain `adId` tracker is actually observed.
-- Errors from a user's `--rules` file must be readable without knowing Go: the **cli** module turns JSON type errors into messages like `rules.json: provider "p": "rules" must be a list of strings`.
+- Errors from a user's `--rules` file must be readable without knowing Go, e.g. `rules.json: provider "p": "rules" must be a list of strings`. They're produced in the **rules** package, where the error happens; the cli prints them and exits `3`.
 
 ### Regex compatibility
 The rules are written for JavaScript regexes; Go uses RE2. All 1,095 patterns in the current rules file (checked 2026-10-15) compile with Go's `regexp`. A unit test must compile every pattern in the bundled file, so a future rules update with an incompatible pattern fails CI instead of failing at runtime. Patterns are compiled case-insensitively (`(?i)`), matching ClearURLs.

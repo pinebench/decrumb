@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -139,39 +140,124 @@ func (c *Cleaner) Clean(input string) Result {
 // whether the scheme is http or https; only then is a host required, and
 // only then is whitespace encoded (step 2 returns any other scheme as it
 // is, after trimming).
+//
+// Error reasons describe the input as the user typed it, never the
+// normalized form: a space the user typed is never reported as "%20".
 func normalize(input string) (s string, isHTTP bool, err error) {
+	invalid := func(reason string) (string, bool, error) {
+		return "", false, fmt.Errorf("%w %q: %s", ErrInvalidURL, input, reason)
+	}
+
 	s = strings.TrimSpace(input)
+	if s == "" {
+		return invalid("empty")
+	}
 	switch {
 	case strings.HasPrefix(s, "//"): // protocol-relative, e.g. copied from HTML
 		s = "https:" + s
 	case !scheme.Has(s):
 		s = "https://" + s
 	}
-	if scheme.HTTPLen(s) > 0 {
+	host := ""
+	if n := scheme.HTTPLen(s); n > 0 {
+		// Check the host before encoding whitespace, so the reason can
+		// say what the user typed.
+		host = hostPart(s[n:])
+		if reason := badHostChars(host); reason != "" {
+			return invalid(reason)
+		}
 		s = encodeSpaces(s)
+	}
+	if strings.ContainsFunc(s, isControl) {
+		return invalid("control characters are not allowed")
 	}
 
 	u, err := url.Parse(s)
 	if err != nil {
-		// url.Parse's error repeats the whole URL; keep only the reason.
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
-			err = urlErr.Err
-		}
-		return "", false, fmt.Errorf("%w %q: %v", ErrInvalidURL, input, err)
+		return invalid(parseReason(err, host))
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return s, false, nil
 	}
-	if u.Host == "" {
-		return "", false, fmt.Errorf("%w %q: no host", ErrInvalidURL, input)
+	if u.Hostname() == "" { // also "https://:80/"
+		return invalid("no host")
 	}
-	// url.Parse rejects %20 in a host, but accepts encoded Unicode
-	// whitespace such as %C2%A0 (U+00A0). Reject both.
-	if strings.ContainsFunc(u.Host, unicode.IsSpace) {
-		return "", false, fmt.Errorf("%w %q: whitespace in host", ErrInvalidURL, input)
+	// Backstop: url.Parse decodes the host, so check it again.
+	if reason := badHostChars(u.Host); reason != "" {
+		return invalid(reason)
+	}
+	if port := u.Port(); port != "" {
+		if n, err := strconv.Atoi(port); err != nil || n > 65535 {
+			return invalid(fmt.Sprintf("invalid port %q (must be 0–65535)", port))
+		}
 	}
 	return s, true, nil
+}
+
+// hostPart returns the host (with port, without userinfo) of rest, the part
+// of a URL after "scheme://", as typed.
+func hostPart(rest string) string {
+	if i := strings.IndexAny(rest, "/?#"); i >= 0 {
+		rest = rest[:i]
+	}
+	if i := strings.LastIndexByte(rest, '@'); i >= 0 {
+		rest = rest[i+1:]
+	}
+	return rest
+}
+
+// badHostChars returns the reason a host is invalid because of the
+// characters in it, typed as is or percent-encoded (%20, %E2%80%8B), or ""
+// if it is fine:
+//   - whitespace;
+//   - invisible characters (Unicode format characters, category Cf, such
+//     as U+200B zero-width space, U+00AD soft hyphen or U+FEFF BOM). They
+//     make lookalike domains, so decrumb never returns such a host as clean.
+//
+// International domain names such as пример.рф contain neither.
+func badHostChars(host string) string {
+	if decoded, err := url.PathUnescape(host); err == nil {
+		host += decoded // check both forms
+	}
+	switch {
+	case strings.Contains(host, " "):
+		return "spaces are not allowed in the host"
+	case strings.ContainsFunc(host, unicode.IsSpace):
+		return "whitespace is not allowed in the host"
+	case strings.ContainsFunc(host, isInvisible):
+		return "invisible characters are not allowed in the host"
+	}
+	return ""
+}
+
+func isInvisible(r rune) bool {
+	return unicode.Is(unicode.Cf, r)
+}
+
+// isControl reports whether r is an ASCII control character, which
+// url.Parse rejects. Whitespace such as a tab is encoded before this check
+// in http(s) URLs, so it isn't reported here.
+func isControl(r rune) bool {
+	return r < 0x20 || r == 0x7f
+}
+
+// parseReason turns a url.Parse error into a plain reason. host is the
+// host as typed ("" if unknown), used to say where a bad escape is.
+func parseReason(err error, host string) string {
+	var escErr url.EscapeError
+	if errors.As(err, &escErr) {
+		if host != "" && strings.Contains(host, string(escErr)) {
+			return fmt.Sprintf("%q is not allowed in the host", string(escErr))
+		}
+		return fmt.Sprintf("invalid percent-encoding %q", string(escErr))
+	}
+	// Other errors quote only the user's own text, e.g. invalid port
+	// ":port" after host. url.Error repeats the whole URL; keep the reason.
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		err = urlErr.Err
+	}
+	return strings.TrimPrefix(err.Error(), "net/url: ")
 }
 
 // encodeSpaces percent-encodes every whitespace character in s, as
