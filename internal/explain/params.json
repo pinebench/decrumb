@@ -189,6 +189,13 @@
     "example": "https://example.com/products/ceramic-mug?srsltid=AfmBOoq7xK2mZ9vT1cL0dPq3sR8uW5yE"
   },
   {
+    "name": "gad_source",
+    "provider": null,
+    "description": "Google Ads source: identifies where the ad click came from, for Google's conversion measurement.",
+    "source": "https://support.google.com/google-ads/answer/13327296",
+    "example": "https://example.com/running-shoes?gad_source=1&gclid=Cj0KCQjw9vqyBhCKARIsAIIcLMG3hX2pQ7kZ"
+  },
+  {
     "name": "ref",
     "provider": null,
     "description": "Referral tag: names the site, page or partner that sent you; each site picks its own values.",
@@ -299,13 +306,6 @@
     "description": "LinkedIn tracking tag: undocumented; appears to name the LinkedIn page element you clicked.",
     "source": "https://github.com/ClearURLs/Rules/issues/252",
     "example": "https://www.linkedin.com/company/example-co/?trk=public_post_feed-actor-name"
-  },
-  {
-    "name": "lipi",
-    "provider": "LinkedIn",
-    "description": "LinkedIn page tag: undocumented; its value names a LinkedIn page, purpose not public.",
-    "source": "https://github.com/ClearURLs/Rules/blob/11086f40512774dcadef54079f1ba023bfacf940/data.min.json",
-    "example": "https://www.linkedin.com/feed/?lipi=urn%3Ali%3Apage%3Ad_flagship3_feed%3BaQ0f2bktwrkuz0rtnybf2xa%3D%3D"
   },
   {
     "name": "share_id",

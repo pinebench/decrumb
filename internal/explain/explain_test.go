@@ -20,11 +20,11 @@ var specList = []string{
 	// email
 	"mc_cid", "mc_eid", "_hsenc", "mkt_tok", "hsCtaTracking", "oly_enc_id", "vero_id", "__s",
 	// analytics
-	"_ga", "_gl", "srsltid",
+	"_ga", "_gl", "srsltid", "gad_source",
 	// referral
 	"ref",
 	// social
-	"igsh", "igshid", "si", "feature", "pp", "ref_src", "s", "t", "mibextid", "__tn__", "trk", "lipi", "share_id",
+	"igsh", "igshid", "si", "feature", "pp", "ref_src", "s", "t", "mibextid", "__tn__", "trk", "share_id",
 	// search
 	"ved", "ei", "oq", "gs_lcrp", "sca_esv", "cvid",
 	// shopping
