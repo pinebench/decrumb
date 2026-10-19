@@ -43,6 +43,9 @@ internal/explain/params.json  the descriptions (MIT, go:embed; also read by the 
 testdata/cases.json     shared input → output cases (spec §10; also used by the future TS extension)
 scripts/update-rules    dev-time rules update (download pinned commit, write SOURCE)
 specs/                  specs
+.goreleaser.yaml        release builds, archives, checksums, release notes groups (spec §14)
+.github/workflows/      ci.yml (also called by release.yml), release.yml (v* tags only)
+SECURITY.md, RELEASING.md  vulnerability reporting; the owner's release steps
 ```
 
 ## Go conventions
@@ -64,11 +67,14 @@ go vet ./...
 gofmt -l .                      # must print nothing
 staticcheck ./...               # honnef.co/go/tools, pinned version
 govulncheck ./...               # golang.org/x/vuln
+goreleaser check                # github.com/goreleaser/goreleaser/v2, pinned version (go run …@version)
+goreleaser release --snapshot --clean   # local release build into dist/, nothing published
 ```
 
 ## CI & security
 
-- CI runs on `ubuntu-latest`, `macos-latest` and `windows-latest`: build, test (with `-race` where supported), vet, gofmt check, staticcheck, govulncheck, and the rules SHA-256 check against `SOURCE`.
+- CI runs on `ubuntu-latest`, `macos-latest` and `windows-latest`: build, test (with `-race` where supported), vet, gofmt check, staticcheck, govulncheck, and the rules SHA-256 check against `SOURCE`. A separate job runs `goreleaser check` and a snapshot build.
+- Releases: `release.yml` (spec §14) is the only workflow with write permissions. Never create or push tags; the owner does (see `RELEASING.md`).
 - **Every action is pinned to a full commit SHA** with the version as a comment, e.g. `uses: actions/checkout@<40-char-sha> # v5.0.0`. The org requires this; unpinned actions fail.
 - Only actions from GitHub or Marketplace verified creators are allowed. If a step needs another action, prefer running the tool directly (`go run …@version`) instead.
 - Dependabot: `gomod` and `github-actions` ecosystems, weekly.
