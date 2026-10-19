@@ -244,7 +244,7 @@ Product v0.1 done:
 ### What gets built
 - **Six binaries:** `windows`, `darwin` (macOS), `linux`, each for `amd64` and `arm64`.
 - **Archives:** `.zip` for Windows, `.tar.gz` for macOS and Linux, named `decrumb_<version>_<os>_<arch>.<ext>`.
-- **Each archive contains:** the `decrumb` binary, `README.md`, `LICENSE`, `NOTICE`, `COPYING.LESSER` and `COPYING` (the last three are required by the LGPL-3.0 checklist in §8).
+- **Each archive contains:** the `decrumb` binary, `README.md`, `LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING` and the bundled rules file as `clearurls/data.min.json`, byte-for-byte identical to the embedded copy (the last four are required by the LGPL-3.0 checklist in §8; the rules file also gives users an editable copy to pass to `--rules`).
 - **Build settings:** `CGO_ENABLED=0` (static, no system dependencies), `-trimpath`, and `-ldflags "-s -w -X main.version=<version>"`: `-s -w` strips the debug symbol tables (smaller binaries; Go's embedded build info stays, so `govulncheck` can still scan them), and `-X` injects the version so `decrumb --version` shows the release version.
 
 ### Trust and verification
