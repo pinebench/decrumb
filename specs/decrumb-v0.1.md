@@ -238,3 +238,47 @@ Product v0.1 done:
 - All modules done
 - Release pipeline set up (GoReleaser) and the first release published through it, with the license files in every archive
 - Someone else can install and use it from the README alone
+
+## 14. Release (v0.1.0)
+
+### What gets built
+- **Six binaries:** `windows`, `darwin` (macOS), `linux`, each for `amd64` and `arm64`.
+- **Archives:** `.zip` for Windows, `.tar.gz` for macOS and Linux, named `decrumb_<version>_<os>_<arch>.<ext>`.
+- **Each archive contains:** the `decrumb` binary, `README.md`, `LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING` and the bundled rules file as `clearurls/data.min.json`, byte-for-byte identical to the embedded copy (the last five are required by the LGPL-3.0 checklist in §8; the rules file also gives users an editable copy to pass to `--rules`).
+- **Build settings:** `CGO_ENABLED=0` (static, no system dependencies), `-trimpath`, and `-ldflags "-s -w -X main.version=<version>"`: `-s -w` strips the debug symbol tables (smaller binaries; Go's embedded build info stays, so `govulncheck` can still scan them), and `-X` injects the version so `decrumb --version` shows the release version.
+
+### Trust and verification
+- **Checksums:** `checksums.txt` with the SHA-256 of every archive.
+- **Build provenance:** GitHub artifact attestations (`actions/attest-build-provenance`) for **every archive and for `checksums.txt` itself**, so a swapped checksum file also fails verification. Verify with `gh attestation verify <file> -o pinebench`.
+- **Immutable releases** enabled in the repo settings if GitHub offers it for this repo (a published release's files and tag can't be changed afterwards), plus a **tag ruleset**: only the owner can create `v*` tags, and they can't be updated or deleted.
+- **No paid code signing in v0.1.** Windows SmartScreen and macOS Gatekeeper may warn on first run.
+- **README sections:** "Install" (download a release, or `go install … @<version>` for developers who have Go, as two separate options); "Verify your download" (checksum and attestation checks with copy-paste commands for PowerShell, macOS and Linux); "Security warnings on first run" (what SmartScreen and Gatekeeper show and how to proceed, and that `go install` avoids them).
+
+### Where it's published
+- **GitHub Releases:** the six archives, `checksums.txt` and the attestations.
+- **`go install github.com/pinebench/decrumb/cmd/decrumb@<version>`:** works once the tag exists; builds from source.
+- **Package managers (Homebrew, Scoop, winget): later** (v0.1.x or v0.2), starting with whichever early users ask for; each gets its own README walkthrough when added.
+- **README install walkthroughs, step by step for every option:**
+  - Release download on **Windows** (PowerShell: download, `Expand-Archive`, move `decrumb.exe` to e.g. `%USERPROFILE%\bin`, add it to the PATH, new terminal, `decrumb --version`, SmartScreen note); **macOS** (choosing Apple Silicon vs Intel, `tar`, move to `/usr/local/bin` or `~/bin`, clear the Gatekeeper quarantine, `decrumb --version`); **Linux** (amd64 vs arm64, `tar`, move to `~/.local/bin`, `decrumb --version`).
+  - **`go install`:** check `go version`, run the command, where the binary lands and how to put it on the PATH, `decrumb --version`.
+  - Each ends with a pointer to "Verify your download" (not needed for `go install`) and a first test: `decrumb "https://example.com/?utm_source=test"`.
+
+### Versions and release notes
+- **Semantic versioning**, starting at `v0.1.0`. **Patch:** fixes, ClearURLs rules updates, new overrides and descriptions. **Minor:** new features, or changes to output or flags. **`v1.0.0`** once the command interface is stable and has had real users.
+- **Security fixes** are patch releases (minor if the fix must change behavior), released **on their own, immediately**, with a **Security** section at the top of the notes (what was affected, which versions, what users should do), and a **GitHub Security Advisory** published with the release (CVE when appropriate; feeds Go's vulnerability database, so `govulncheck` warns users of affected versions). Reports come in through private vulnerability reporting.
+- **`SECURITY.md`** in the repo: how to report privately (the advisory form), which versions get fixes (below 1.0: only the latest release), and expected response time.
+- **Releasing = pushing a `v*` tag on `main`**; the workflow builds, attests and publishes everything. Nothing is uploaded by hand.
+- **Release notes replace a CHANGELOG.md** and must contain everything one would, in this order: **Security**, **Added**, **Changed** (breaking changes marked), **Fixed**, **Removed / Deprecated** (when relevant), **Rules & data** (bundled ClearURLs commit; overrides and descriptions added or removed), **Upgrade notes** (when needed). Commit groups are generated from conventional-commit titles (`feat:` → Added, `fix:` → Fixed, …); a hand-written intro adds context, breaking changes and upgrade steps.
+
+### Release workflow
+- **`.github/workflows/release.yml`, triggered only by pushing a `v*` tag.** The CI workflow stays read-only.
+- **Permissions, in this workflow only:** `contents: write` (create the release), `id-token: write` and `attestations: write` (provenance). Nothing else.
+- **Tests first:** the full test suite runs on the tagged commit before building; any failure stops the release.
+- **GoReleaser** via `go run github.com/goreleaser/goreleaser/v2@<pinned version>` (no third-party Action; verified by Go's checksum database), configured in `.goreleaser.yaml`.
+- **Manual approval:** the publishing job uses a GitHub environment `release` with the owner as required reviewer, so nothing is published until it's approved.
+- **The release config is tested on every PR:** CI runs `goreleaser check` and a `--snapshot` build (nothing published).
+
+### Testing the release before v0.1.0
+- **Release candidate first:** the first tag is `v0.1.0-rc.1`, published as a GitHub *pre-release* through the full pipeline. Problems are fixed and a new RC (`rc.2`, …) is cut. Only when an RC passes everything is the **same commit** tagged `v0.1.0`.
+- **Automatic smoke test (mandatory):** after publishing, a job on fresh `ubuntu-latest`, `macos-latest` and `windows-latest` runners downloads the published archive like a user would, verifies its checksum **and** its attestation, extracts it, and runs `decrumb --version` plus a few `testdata/cases.json` inputs. A failure fails the workflow; the owner then marks the release as broken by hand (a warning at the top of its notes; see `RELEASING.md`) and fixes it in the next RC or patch. Marking is deliberately manual, so the smoke job needs no write permission.
+- **Manual install test:** required for `v0.1.0`, every minor or major release, and any release that changes the README's install or verify sections or `.goreleaser.yaml`; optional for other patches. When required: following only the README, without Go installed, on at least **one** clean environment: an Ubuntu VirtualBox VM (from a snapshot without Go), a **new Windows user account** (empty PATH, no Go), or another person's machine. One passing manual test is enough to proceed. In exceptional, unavoidable cases it may be skipped and the automatic smoke test relied on, with the reason noted in the release notes.

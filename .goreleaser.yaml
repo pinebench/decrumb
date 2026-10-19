@@ -1,0 +1,99 @@
+# GoReleaser v2 configuration (spec §14).
+# Run only by .github/workflows/release.yml (publish) and ci.yml (check + snapshot).
+version: 2
+
+project_name: decrumb
+
+builds:
+  - id: decrumb
+    main: ./cmd/decrumb
+    binary: decrumb
+    env:
+      - CGO_ENABLED=0
+    goos: [windows, darwin, linux]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: decrumb
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # The binary plus the files the LGPL-3.0 checklist (spec §8) requires.
+    files:
+      - README.md
+      - LICENSE
+      - NOTICE
+      - COPYING.LESSER
+      - COPYING
+      - src: internal/rules/clearurls/data.min.json
+        dst: clearurls
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+git:
+  # Final releases list changes since the previous final release, not since
+  # the last release candidate.
+  ignore_tags:
+    - "{{ if not .Prerelease }}v*-rc.*{{ end }}"
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^Merge (pull request|branch|remote-tracking branch) "
+  # Each commit lands in the first group (by order) whose regexp matches.
+  # Added and Fixed don't match a "!" before the colon, and a scope can't
+  # contain ")", so a breaking title can only land in Changed.
+  groups:
+    - title: Security
+      regexp: '^security'
+      order: 0
+    - title: Added
+      regexp: '^feat(\([^)]+\))?:'
+      order: 1
+    - title: Changed
+      regexp: '^\w+(\([^)]+\))?!:'
+      order: 2
+    - title: Fixed
+      regexp: '^fix(\([^)]+\))?:'
+      order: 3
+    - title: Rules & data
+      regexp: '^rules'
+      order: 4
+    - title: Other
+      order: 999
+
+release:
+  # Immutable releases are on: create a draft, upload everything, and let the
+  # workflow publish it after the attestations exist.
+  draft: true
+  # A leftover draft from a failed run of the same tag is replaced.
+  replace_existing_draft: true
+  # Tags with a pre-release suffix (v0.1.0-rc.1) become GitHub pre-releases.
+  prerelease: auto
+  header: |
+    <!-- Hand-written intro goes here: what this release is about, breaking
+         changes (Changed), Removed / Deprecated, Rules & data (bundled
+         ClearURLs commit, overrides and descriptions), and Upgrade notes. -->
+  footer: |
+    ---
+
+    **Install:** see the [README](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#install).
+    **Verify your download:** check its SHA-256 against `checksums.txt`, then
+    run `gh attestation verify <file> -o pinebench` on the archive and on
+    `checksums.txt` ([how](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#verify-your-download)).
+
+    decrumb uses the [ClearURLs rules](https://github.com/ClearURLs/Rules) by
+    the ClearURLs project and contributors (LGPL-3.0). Every archive contains
+    `LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING` and the bundled rules
+    file `clearurls/data.min.json`.

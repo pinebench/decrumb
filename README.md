@@ -9,13 +9,424 @@ never opens a network connection and never writes anything to disk.
 
 ## Install
 
-From source, with [Go](https://go.dev/dl/) installed:
+There are two ways to install decrumb:
 
-```
-go install github.com/pinebench/decrumb/cmd/decrumb@latest
+- **[Download a release](#option-1-download-a-release)**: a ready-made
+  program for Windows, macOS or Linux. You don't need anything else.
+- **[`go install`](#option-2-go-install-for-developers-with-go)**: for
+  developers who already have Go; builds decrumb from source.
+
+The examples use version `v0.1.0`. For a newer release, replace `0.1.0` with
+its version number everywhere.
+
+### Option 1: Download a release
+
+Every release on the [releases page](https://github.com/pinebench/decrumb/releases)
+has one archive per system:
+
+| System | Archive |
+|---|---|
+| Windows, most PCs (Intel/AMD, "x64") | `decrumb_0.1.0_windows_amd64.zip` |
+| Windows on Arm (e.g. Snapdragon laptops) | `decrumb_0.1.0_windows_arm64.zip` |
+| macOS, Apple Silicon (M1 and later) | `decrumb_0.1.0_darwin_arm64.tar.gz` |
+| macOS, Intel | `decrumb_0.1.0_darwin_amd64.tar.gz` |
+| Linux, most PCs and servers (x86-64) | `decrumb_0.1.0_linux_amd64.tar.gz` |
+| Linux on Arm (e.g. Raspberry Pi 4/5 with a 64-bit OS) | `decrumb_0.1.0_linux_arm64.tar.gz` |
+
+Each archive contains the `decrumb` program, `README.md`, the license files
+(`LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING`) and the bundled ClearURLs
+rules as `clearurls/data.min.json`. `checksums.txt` lists the SHA-256 of every
+archive.
+
+#### Windows (PowerShell)
+
+1. **Check your system.** Open PowerShell and run:
+
+   ```powershell
+   $env:PROCESSOR_ARCHITECTURE
+   ```
+
+   `AMD64` means use the `windows_amd64` archive; `ARM64` means use
+   `windows_arm64` (replace `amd64` with `arm64` in the commands below).
+
+2. **Download** the archive and `checksums.txt` into your Downloads folder:
+
+   ```powershell
+   cd $HOME\Downloads
+   Invoke-WebRequest https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_windows_amd64.zip -OutFile decrumb_0.1.0_windows_amd64.zip
+   Invoke-WebRequest https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt -OutFile checksums.txt
+   ```
+
+   You can also download both files from the releases page in your browser.
+
+3. **Verify the download** before you run anything from it: see
+   [Verify your download](#verify-your-download).
+
+4. **Extract** the archive:
+
+   ```powershell
+   Expand-Archive decrumb_0.1.0_windows_amd64.zip -DestinationPath decrumb_0.1.0
+   ```
+
+5. **Move `decrumb.exe`** to a folder for your own programs,
+   `%USERPROFILE%\bin` (in PowerShell: `$HOME\bin`):
+
+   ```powershell
+   New-Item -ItemType Directory -Force "$HOME\bin" | Out-Null
+   Move-Item decrumb_0.1.0\decrumb.exe "$HOME\bin\" -Force
+   ```
+
+6. **Add that folder to your PATH** (only needed once; only for your user
+   account, no administrator rights needed):
+
+   ```powershell
+   $bin = "$HOME\bin"
+   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+   if (($userPath -split ";") -notcontains $bin) {
+       $newPath = (@($userPath, $bin) | Where-Object { $_ }) -join ";"
+       [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+   }
+   ```
+
+   Or without commands: open Start, search for **"Edit environment variables
+   for your account"**, select **Path**, click **Edit → New**, enter
+   `%USERPROFILE%\bin`, and click **OK** twice.
+
+7. **Open a new PowerShell window** (the PATH change only applies to new
+   windows) and check that it works:
+
+   ```powershell
+   decrumb --version
+   ```
+
+   The first line should read `decrumb 0.1.0`. If Windows shows a blue
+   "Windows protected your PC" window instead, see
+   [Security warnings on first run](#security-warnings-on-first-run).
+
+8. **First test:**
+
+   ```powershell
+   decrumb "https://example.com/?utm_source=test"
+   ```
+
+   It prints `https://example.com/`.
+
+#### macOS
+
+1. **Check your Mac.** In Terminal, run `uname -m`. `arm64` means Apple
+   Silicon: use the `darwin_arm64` archive. `x86_64` means Intel: use
+   `darwin_amd64` (replace `arm64` with `amd64` in the commands below).
+
+2. **Download** the archive and `checksums.txt`:
+
+   ```sh
+   cd ~/Downloads
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_darwin_arm64.tar.gz
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
+   ```
+
+3. **Verify the download** before you run anything from it: see
+   [Verify your download](#verify-your-download).
+
+4. **Extract** the archive:
+
+   ```sh
+   mkdir decrumb_0.1.0
+   tar -xzf decrumb_0.1.0_darwin_arm64.tar.gz -C decrumb_0.1.0
+   ```
+
+5. **Clear the quarantine flag.** macOS marks files downloaded with a browser
+   as "quarantined", and Gatekeeper then blocks unsigned programs such as
+   decrumb (see [Security warnings on first run](#security-warnings-on-first-run)).
+   After verifying the download, remove the flag:
+
+   ```sh
+   xattr -d com.apple.quarantine decrumb_0.1.0/decrumb 2>/dev/null || true
+   ```
+
+   (Files downloaded with `curl` aren't quarantined; then this does nothing.)
+
+6. **Move `decrumb`** onto your PATH. Either for all users, in
+   `/usr/local/bin` (asks for your password):
+
+   ```sh
+   sudo mkdir -p /usr/local/bin
+   sudo mv decrumb_0.1.0/decrumb /usr/local/bin/
+   ```
+
+   or only for you, in `~/bin`:
+
+   ```sh
+   mkdir -p ~/bin
+   mv decrumb_0.1.0/decrumb ~/bin/
+   echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+   ```
+
+   With `~/bin`, open a new Terminal window afterwards.
+
+7. **Check that it works:**
+
+   ```sh
+   decrumb --version
+   ```
+
+   The first line should read `decrumb 0.1.0`.
+
+8. **First test:**
+
+   ```sh
+   decrumb "https://example.com/?utm_source=test"
+   ```
+
+   It prints `https://example.com/`.
+
+#### Linux
+
+1. **Check your system:** run `uname -m`. `x86_64` means use the
+   `linux_amd64` archive; `aarch64` means use `linux_arm64` (replace `amd64`
+   with `arm64` in the commands below).
+
+2. **Download** the archive and `checksums.txt`:
+
+   ```sh
+   cd ~/Downloads 2>/dev/null || cd ~
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_linux_amd64.tar.gz
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
+   ```
+
+   (No `curl`? Use `wget` with the same URLs.)
+
+3. **Verify the download** before you run anything from it: see
+   [Verify your download](#verify-your-download).
+
+4. **Extract** the archive:
+
+   ```sh
+   mkdir decrumb_0.1.0
+   tar -xzf decrumb_0.1.0_linux_amd64.tar.gz -C decrumb_0.1.0
+   ```
+
+5. **Move `decrumb`** to `~/.local/bin`:
+
+   ```sh
+   mkdir -p ~/.local/bin
+   mv decrumb_0.1.0/decrumb ~/.local/bin/
+   ```
+
+6. **Check that it works:**
+
+   ```sh
+   decrumb --version
+   ```
+
+   The first line should read `decrumb 0.1.0`. If you get
+   `decrumb: command not found`, `~/.local/bin` isn't on your PATH yet. Many
+   distributions add it automatically at your next login; otherwise add it
+   yourself and open a new terminal:
+
+   ```sh
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+   ```
+
+   (For zsh, use `~/.zshrc` instead of `~/.bashrc`.)
+
+7. **First test:**
+
+   ```sh
+   decrumb "https://example.com/?utm_source=test"
+   ```
+
+   It prints `https://example.com/`.
+
+### Option 2: `go install` (for developers with Go)
+
+1. **Check your Go version:**
+
+   ```sh
+   go version
+   ```
+
+   decrumb needs Go 1.27.2 or newer. (Go 1.21 and later download the needed
+   version automatically.) No Go yet? Use
+   [Option 1](#option-1-download-a-release), or install Go from
+   [go.dev/dl](https://go.dev/dl/).
+
+2. **Build and install:**
+
+   ```sh
+   go install github.com/pinebench/decrumb/cmd/decrumb@v0.1.0
+   ```
+
+   Go downloads the source, checks it against Go's public checksum database,
+   and builds `decrumb` on your machine.
+
+3. **Where it lands:** in Go's `bin` folder, `$(go env GOPATH)/bin` (or
+   `$(go env GOBIN)` if you've set that). By default that's `~/go/bin` on
+   macOS and Linux, and `%USERPROFILE%\go\bin` on Windows. To see the exact
+   folder:
+
+   ```sh
+   go env GOPATH
+   ```
+
+   (then add `/bin`, or `\bin` on Windows).
+
+4. **Put it on your PATH**, if it isn't already (the Windows Go installer
+   usually adds it for you):
+
+   - macOS (zsh): `echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc`
+   - Linux (bash): `echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc`
+   - Windows: add `%USERPROFILE%\go\bin` to your Path as in
+     [step 6 of the Windows walkthrough](#windows-powershell), replacing
+     `$HOME\bin` with `$HOME\go\bin`.
+
+   Then open a new terminal.
+
+5. **Check that it works:**
+
+   ```sh
+   decrumb --version
+   ```
+
+   With `go install`, the first line reads `decrumb dev`: builds made this
+   way don't carry the release number yet. The rules line below it is the
+   same as in the release.
+
+6. **First test:**
+
+   ```sh
+   decrumb "https://example.com/?utm_source=test"
+   ```
+
+   It prints `https://example.com/`.
+
+You don't need the next two sections for `go install`: Go verifies the source
+itself, and a program you built yourself doesn't trigger SmartScreen or
+Gatekeeper.
+
+## Verify your download
+
+Two checks, both recommended before you run a downloaded decrumb:
+
+1. **Checksum:** the archive's SHA-256 matches the one in `checksums.txt`, so
+   the file wasn't damaged or changed on the way.
+2. **Attestation:** GitHub confirms that the archive and `checksums.txt` were
+   built by decrumb's own release workflow in
+   [pinebench/decrumb](https://github.com/pinebench/decrumb). This also
+   catches a swapped `checksums.txt`.
+
+Run both in the folder you downloaded to, with your archive's name.
+
+### 1. Checksum
+
+**Windows (PowerShell):**
+
+```powershell
+$file = "decrumb_0.1.0_windows_amd64.zip"
+$expected = ((Get-Content checksums.txt) -match "  $([regex]::Escape($file))$" -split "\s+")[0]
+$actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+if ($expected -and $expected -eq $actual) { "OK: checksum matches" } else { "FAILED: checksum does not match" }
 ```
 
-This puts `decrumb` in `$(go env GOPATH)/bin`. Prebuilt releases will follow.
+**macOS:**
+
+```sh
+grep " decrumb_0.1.0_darwin_arm64.tar.gz$" checksums.txt | shasum -a 256 -c
+```
+
+**Linux:**
+
+```sh
+grep " decrumb_0.1.0_linux_amd64.tar.gz$" checksums.txt | sha256sum -c
+```
+
+**Good result:** `OK: checksum matches` (Windows) or a line ending in `: OK`,
+e.g. `decrumb_0.1.0_linux_amd64.tar.gz: OK` (macOS, Linux).
+
+**Bad result:** `FAILED: checksum does not match` (Windows), or `FAILED` and
+`WARNING: 1 computed checksum did NOT match` (macOS, Linux). No output on
+macOS/Linux means the file name wasn't found in `checksums.txt`; check the
+spelling. Either way: don't run the file; delete it and download it again
+from the [releases page](https://github.com/pinebench/decrumb/releases). If
+it still fails, please
+[report it privately](https://github.com/pinebench/decrumb/security).
+
+### 2. Attestation
+
+This needs the [GitHub CLI](https://cli.github.com/) (`gh`), signed in once
+with `gh auth login`. The commands are the same on Windows, macOS and Linux:
+
+```sh
+gh attestation verify decrumb_0.1.0_linux_amd64.tar.gz -o pinebench
+gh attestation verify checksums.txt -o pinebench
+```
+
+(Use your archive's name in the first line.)
+
+**Good result,** for each file:
+
+```text
+✓ Verification succeeded!
+
+The following 1 attestation matched the policy criteria
+
+- Attestation #1
+  - Build repo:..... pinebench/decrumb
+  - Build workflow:. .github/workflows/release.yml@refs/tags/v0.1.0
+  ...
+```
+
+Check that **Build repo** is `pinebench/decrumb` and the workflow ends in
+`@refs/tags/v0.1.0`, the version you downloaded.
+
+**Bad result:** a message that verification failed, or that no attestations
+were found for the file. Don't run it: the file wasn't built by decrumb's
+release workflow. Delete it, download it again from the
+[releases page](https://github.com/pinebench/decrumb/releases), and if it
+still fails, please [report it privately](https://github.com/pinebench/decrumb/security).
+
+Each release also contains the attestation file itself,
+`decrumb_0.1.0_attestation.sigstore.json`, for checking without asking
+GitHub's API: add `--bundle decrumb_0.1.0_attestation.sigstore.json` to the
+commands above.
+
+## Security warnings on first run
+
+decrumb's release builds aren't signed with a paid Microsoft or Apple
+certificate yet, so Windows and macOS may warn you the first time you run a
+**downloaded** copy. Verify your download first (above); if both checks pass,
+it's the genuine release and you can continue as described here.
+[`go install`](#option-2-go-install-for-developers-with-go) builds decrumb on
+your own machine and avoids these warnings entirely.
+
+### Windows SmartScreen
+
+**What you see:** a blue window, "Windows protected your PC: Microsoft
+Defender SmartScreen prevented an unrecognized app from starting", with only a
+**Don't run** button. This mostly happens with files downloaded in a browser.
+
+**How to proceed:** click **More info**, check that the app is `decrumb.exe`
+(the publisher shows as "Unknown publisher"), then click **Run anyway**.
+Windows remembers this. Or, before the first run, remove the "downloaded from
+the internet" mark in PowerShell:
+
+```powershell
+Unblock-File "$HOME\bin\decrumb.exe"
+```
+
+### macOS Gatekeeper
+
+**What you see:** a dialog saying that "decrumb" can't be opened because
+Apple can't check it for malicious software, or that the developer can't be
+verified, with buttons such as **Done** and **Move to Trash**. This happens
+when the file still has the quarantine flag from a browser download.
+
+**How to proceed:** don't click **Move to Trash**. Click **Done**, then
+either remove the quarantine flag as in
+[step 5 of the macOS walkthrough](#macos) (with the path where decrumb is
+now, e.g. `xattr -d com.apple.quarantine /usr/local/bin/decrumb`), or open
+**System Settings → Privacy & Security**, scroll down to the message about
+"decrumb", click **Open Anyway**, and confirm. Then run decrumb again.
 
 ## Usage
 

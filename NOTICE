@@ -13,7 +13,8 @@ supplements.
 
 The rules file is bundled unmodified, byte-for-byte as published upstream,
 at internal/rules/clearurls/data.min.json. The exact upstream commit and the
-file's SHA-256 are recorded in internal/rules/clearurls/SOURCE.
+file's SHA-256 are recorded in internal/rules/clearurls/SOURCE. Release
+archives contain the same file, unmodified, at clearurls/data.min.json.
 
 You can use your own rules file instead of the bundled one with the
 --rules <file> option.
