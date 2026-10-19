@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # release.yml runs this same workflow on the tagged commit before building.
+  workflow_call:
 
 permissions:
   contents: read
@@ -11,6 +13,8 @@ permissions:
 env:
   STATICCHECK_VERSION: v0.8.2
   GOVULNCHECK_VERSION: v1.9.0
+  # Keep in sync with release.yml.
+  GORELEASER_VERSION: v2.18.3
 
 jobs:
   check:
@@ -57,3 +61,25 @@ jobs:
 
       - name: Rules integrity (SHA-256 matches SOURCE)
         run: go test -count=1 -run '^TestBundledRulesMatchSource$' ./internal/rules/clearurls
+
+  # Tests the release config without publishing anything (spec §14).
+  release-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: GoReleaser check
+        run: go run github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION} check
+
+      - name: GoReleaser snapshot build
+        run: go run github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION} release --snapshot --clean
+
+      - name: List snapshot artifacts
+        run: ls -l dist/*.tar.gz dist/*.zip dist/checksums.txt
