@@ -137,6 +137,9 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
    ```
 
+   You can also download both files in your browser, from Assets on the
+   [latest release](https://github.com/pinebench/decrumb/releases/latest).
+
 3. **Verify the download** before you run anything from it: see
    [Verify your download](#verify-your-download).
 
@@ -207,6 +210,9 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    ```
 
    (No `curl`? Use `wget` with the same URLs.)
+
+   You can also download both files in your browser, from Assets on the
+   [latest release](https://github.com/pinebench/decrumb/releases/latest).
 
 3. **Verify the download** before you run anything from it: see
    [Verify your download](#verify-your-download).
