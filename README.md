@@ -246,7 +246,7 @@ archive.
    go version
    ```
 
-   decrumb needs Go 1.27.2 or newer. (Go 1.21 and later download the needed
+   decrumb needs Go 1.27.3 or newer. (Go 1.21 and later download the needed
    version automatically.) No Go yet? Use
    [Option 1](#option-1-download-a-release), or install Go from
    [go.dev/dl](https://go.dev/dl/).
