@@ -88,8 +88,8 @@ release:
   footer: |
     ---
 
-    **Download:** pick the archive for your system from Assets below (Windows: `windows_amd64.zip`, on Arm `windows_arm64.zip`; macOS Apple Silicon: `darwin_arm64`, Intel: `darwin_amd64`; Linux: `linux_amd64`, on Arm `linux_arm64`). Step-by-step install: [README](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#install).
+    **Download:** pick the archive for your system from Assets below (Windows: `windows_amd64.zip`, on Arm `windows_arm64.zip`; macOS Apple Silicon: `darwin_arm64`, Intel: `darwin_amd64`; Linux: `linux_amd64`, on Arm `linux_arm64`). Step-by-step install: [README](https://github.com/pinebench/decrumb/blob/main/README.md#install).
 
-    **Verify your download:** check its SHA-256 against `checksums.txt`, then run `gh attestation verify <file> -o pinebench` on the archive and on `checksums.txt` ([how](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#verify-your-download)).
+    **Verify your download:** check its SHA-256 against `checksums.txt`, then run `gh attestation verify <file> -o pinebench` on the archive and on `checksums.txt` ([how](https://github.com/pinebench/decrumb/blob/main/README.md#verify-your-download)).
 
     decrumb uses the [ClearURLs rules](https://github.com/ClearURLs/Rules) by the ClearURLs project and contributors (LGPL-3.0). Every archive contains `LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING` and the bundled rules file `clearurls/data.min.json`.
