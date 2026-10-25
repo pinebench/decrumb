@@ -21,8 +21,9 @@ its version number everywhere.
 
 ### Option 1: Download a release
 
-Every release on the [releases page](https://github.com/pinebench/decrumb/releases)
-has one archive per system:
+Open the [latest release](https://github.com/pinebench/decrumb/releases/latest).
+On that page, scroll down to **Assets** and download only the one archive for
+your system from this table:
 
 | System | Archive |
 |---|---|
@@ -37,6 +38,16 @@ Each archive contains the `decrumb` program, `README.md`, the license files
 (`LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING`) and the bundled ClearURLs
 rules as `clearurls/data.min.json`. `checksums.txt` lists the SHA-256 of every
 archive.
+
+You don't need the other files under Assets:
+
+- `checksums.txt` and `decrumb_0.1.0_attestation.sigstore.json` are only
+  needed to [verify your download](#verify-your-download) (recommended).
+- "Source code (zip)", "Source code (tar.gz)" and "Release attestation" are
+  added by GitHub to every release. You don't need them.
+
+Release candidates (test versions, marked "Pre-release") have `-rc.N` in their
+file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
 #### Windows (PowerShell)
 
@@ -57,7 +68,8 @@ archive.
    Invoke-WebRequest https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt -OutFile checksums.txt
    ```
 
-   You can also download both files from the releases page in your browser.
+   You can also download both files in your browser, from Assets on the
+   [latest release](https://github.com/pinebench/decrumb/releases/latest).
 
 3. **Verify the download** before you run anything from it: see
    [Verify your download](#verify-your-download).
@@ -124,6 +136,9 @@ archive.
    curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_darwin_arm64.tar.gz
    curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
    ```
+
+   You can also download both files in your browser, from Assets on the
+   [latest release](https://github.com/pinebench/decrumb/releases/latest).
 
 3. **Verify the download** before you run anything from it: see
    [Verify your download](#verify-your-download).
@@ -195,6 +210,9 @@ archive.
    ```
 
    (No `curl`? Use `wget` with the same URLs.)
+
+   You can also download both files in your browser, from Assets on the
+   [latest release](https://github.com/pinebench/decrumb/releases/latest).
 
 3. **Verify the download** before you run anything from it: see
    [Verify your download](#verify-your-download).
@@ -346,7 +364,8 @@ e.g. `decrumb_0.1.0_linux_amd64.tar.gz: OK` (macOS, Linux).
 `WARNING: 1 computed checksum did NOT match` (macOS, Linux). No output on
 macOS/Linux means the file name wasn't found in `checksums.txt`; check the
 spelling. Either way: don't run the file; delete it and download it again
-from the [releases page](https://github.com/pinebench/decrumb/releases). If
+from Assets on the
+[latest release](https://github.com/pinebench/decrumb/releases/latest). If
 it still fails, please
 [report it privately](https://github.com/pinebench/decrumb/security).
 
@@ -380,8 +399,8 @@ Check that **Build repo** is `pinebench/decrumb` and the workflow ends in
 
 **Bad result:** a message that verification failed, or that no attestations
 were found for the file. Don't run it: the file wasn't built by decrumb's
-release workflow. Delete it, download it again from the
-[releases page](https://github.com/pinebench/decrumb/releases), and if it
+release workflow. Delete it, download it again from Assets on the
+[latest release](https://github.com/pinebench/decrumb/releases/latest), and if it
 still fails, please [report it privately](https://github.com/pinebench/decrumb/security).
 
 Each release also contains the attestation file itself,
