@@ -83,3 +83,13 @@ jobs:
 
       - name: List snapshot artifacts
         run: ls -l dist/*.tar.gz dist/*.zip dist/checksums.txt
+
+      - name: Snapshot --version shows the version with its v
+        run: |
+          bin=$(ls dist/decrumb_linux_amd64_*/decrumb)
+          "$bin" --version
+          first=$("$bin" --version | head -n 1)
+          case "$first" in
+            "decrumb v"*-SNAPSHOT-*) ;;
+            *) echo "expected \"decrumb v<version>-SNAPSHOT-<commit>\", got \"$first\""; exit 1 ;;
+          esac
