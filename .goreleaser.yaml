@@ -88,7 +88,10 @@ release:
   footer: |
     ---
 
-    **Install:** see the [README](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#install).
+    **Download:** pick the archive for your system from Assets below
+    (Windows: `windows_amd64.zip`; macOS Apple Silicon: `darwin_arm64`,
+    Intel: `darwin_amd64`; Linux: `linux_amd64`). Step-by-step install:
+    [README](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#install).
     **Verify your download:** check its SHA-256 against `checksums.txt`, then
     run `gh attestation verify <file> -o pinebench` on the archive and on
     `checksums.txt` ([how](https://github.com/pinebench/decrumb/blob/{{ .Tag }}/README.md#verify-your-download)).

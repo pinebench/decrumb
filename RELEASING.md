@@ -69,9 +69,12 @@ On **github.com/pinebench/decrumb/releases**, for the new release:
 - [ ] Title and tag are right; it is **published** (not a draft); an RC is
       marked **Pre-release**, a final release is **Latest**.
 - [ ] It shows as **Immutable**.
-- [ ] 8 files: the six archives (`decrumb_<version>_{windows_amd64,windows_arm64}.zip`,
+- [ ] 11 files under **Assets**: 8 from our workflow, the six archives
+      (`decrumb_<version>_{windows_amd64,windows_arm64}.zip`,
       `decrumb_<version>_{darwin,linux}_{amd64,arm64}.tar.gz`),
-      `checksums.txt` and `decrumb_<version>_attestation.sigstore.json`.
+      `checksums.txt` and `decrumb_<version>_attestation.sigstore.json`,
+      plus 3 that GitHub adds: "Source code (zip)", "Source code (tar.gz)"
+      and "Release attestation (json)".
 - [ ] The notes are grouped (Security, Added, Changed, Fixed, Rules & data,
       Other) and each line is in the right group. A breaking change must be
       under **Changed**.
