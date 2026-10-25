@@ -248,13 +248,14 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    Then set the version and architecture once, in the same terminal:
 
    ```sh
-   VERSION=0.1.0   # the release you want
-   ARCH=amd64      # from uname -m: x86_64 → amd64, aarch64 → arm64
+   VERSION=0.1.0
+   ARCH=amd64
    ```
 
-   All the commands below use these two values, so you don't edit them. They
-   last until you close this terminal; if you open a new one before step 6,
-   run these two lines again.
+   `VERSION` is the release you want. `ARCH` comes from `uname -m`:
+   `x86_64` → `amd64`, `aarch64` → `arm64`. All the commands below use these
+   two values, so you don't edit them. They last until you close this
+   terminal; if you open a new one before step 6, run these two lines again.
 
 2. **Download** the archive and `checksums.txt`:
 
@@ -353,7 +354,8 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    (then add `/bin`, or `\bin` on Windows).
 
 4. **Put it on your PATH**, if it isn't already (the Windows Go installer
-   usually adds it for you):
+   usually adds it for you). Do this only once, the first time you install
+   decrumb: running the line twice adds it twice.
 
    - macOS (zsh): `echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.zshrc`
    - Linux (bash): `echo 'export PATH="$(go env GOPATH)/bin:$PATH"' >> ~/.bashrc`
@@ -524,8 +526,9 @@ GitHub's API: download it into the same folder and add
 
 decrumb's release builds aren't signed with a paid Microsoft or Apple
 certificate yet, so Windows and macOS may warn you the first time you run a
-**downloaded** copy. Verify your download first (above); if both checks pass,
-it's the genuine release and you can continue as described here.
+**downloaded** copy. Verify your download first (above); if the checksum
+check passed, and the attestation too if you ran it, it's the genuine release
+and you can continue as described here.
 [`go install`](#option-2-go-install-for-developers-with-go) builds decrumb on
 your own machine and avoids these warnings entirely.
 
