@@ -182,7 +182,7 @@ jobs:
         run: |
           "$BIN" --version
           first=$("$BIN" --version | head -n 1)
-          [ "$first" = "decrumb ${TAG#v}" ] || { echo "expected \"decrumb ${TAG#v}\", got \"$first\""; exit 1; }
+          [ "$first" = "decrumb $TAG" ] || { echo "expected \"decrumb $TAG\", got \"$first\""; exit 1; }
 
       - name: Clean the shared test cases
         run: |

@@ -245,7 +245,7 @@ Product v0.1 done:
 - **Six binaries:** `windows`, `darwin` (macOS), `linux`, each for `amd64` and `arm64`.
 - **Archives:** `.zip` for Windows, `.tar.gz` for macOS and Linux, named `decrumb_<version>_<os>_<arch>.<ext>`.
 - **Each archive contains:** the `decrumb` binary, `README.md`, `LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING` and the bundled rules file as `clearurls/data.min.json`, byte-for-byte identical to the embedded copy (the last five are required by the LGPL-3.0 checklist in §8; the rules file also gives users an editable copy to pass to `--rules`).
-- **Build settings:** `CGO_ENABLED=0` (static, no system dependencies), `-trimpath`, and `-ldflags "-s -w -X main.version=<version>"`: `-s -w` strips the debug symbol tables (smaller binaries; Go's embedded build info stays, so `govulncheck` can still scan them), and `-X` injects the version so `decrumb --version` shows the release version.
+- **Build settings:** `CGO_ENABLED=0` (static, no system dependencies), `-trimpath`, and `-ldflags "-s -w -X main.version=<version>"`: `-s -w` strips the debug symbol tables (smaller binaries; Go's embedded build info stays, so `govulncheck` can still scan them), and `-X` injects the version, with its `v` (`v{{ .Version }}`, e.g. `v0.1.0`, the same as the tag and as `go install` builds), so `decrumb --version` shows the release version. Archive names keep GoReleaser's form without the `v` (`decrumb_0.1.0_linux_amd64.tar.gz`).
 
 ### Trust and verification
 - **Checksums:** `checksums.txt` with the SHA-256 of every archive.
@@ -256,7 +256,7 @@ Product v0.1 done:
 
 ### Where it's published
 - **GitHub Releases:** the six archives, `checksums.txt` and the attestations.
-- **`go install github.com/pinebench/decrumb/cmd/decrumb@<version>`:** works once the tag exists; builds from source.
+- **`go install github.com/pinebench/decrumb/cmd/decrumb@<version>`:** works once the tag exists; builds from source. With no version injected by `-ldflags`, `decrumb --version` falls back to the module version Go records in the binary (`runtime/debug.ReadBuildInfo`), e.g. `decrumb v0.1.0`, the same as release builds. Only when Go records no usable version (empty or `(devel)`) does it show `dev`. A build that isn't from a release tag (a plain `go build` in a git checkout, or `go install …@main`) gets a Go pseudo-version such as `v0.0.0-20261025093727-c252c0c87f27+dirty`; that is shown in readable form instead: `decrumb dev (c252c0c, 2026-10-25)`, the short commit and its UTC date, with `, modified` added when Go marked the build `+dirty` (uncommitted changes). Recognized by the pseudo-version's ending (a 14-digit timestamp and 12-character commit, optionally `+dirty`), without new dependencies.
 - **Package managers (Homebrew, Scoop, winget): later** (v0.1.x or v0.2), starting with whichever early users ask for; each gets its own README walkthrough when added.
 - **README install walkthroughs, step by step for every option:**
   - Release download on **Windows** (PowerShell: download, `Expand-Archive`, move `decrumb.exe` to e.g. `%USERPROFILE%\bin`, add it to the PATH, new terminal, `decrumb --version`, SmartScreen note); **macOS** (choosing Apple Silicon vs Intel, `tar`, move to `/usr/local/bin` or `~/bin`, clear the Gatekeeper quarantine, `decrumb --version`); **Linux** (amd64 vs arm64, `tar`, move to `~/.local/bin`, `decrumb --version`).

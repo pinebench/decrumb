@@ -99,7 +99,7 @@ archive.
    decrumb --version
    ```
 
-   The first line should read `decrumb 0.1.0`. If Windows shows a blue
+   The first line should read `decrumb v0.1.0`. If Windows shows a blue
    "Windows protected your PC" window instead, see
    [Security warnings on first run](#security-warnings-on-first-run).
 
@@ -170,7 +170,7 @@ archive.
    decrumb --version
    ```
 
-   The first line should read `decrumb 0.1.0`.
+   The first line should read `decrumb v0.1.0`.
 
 8. **First test:**
 
@@ -219,7 +219,7 @@ archive.
    decrumb --version
    ```
 
-   The first line should read `decrumb 0.1.0`. If you get
+   The first line should read `decrumb v0.1.0`. If you get
    `decrumb: command not found`, `~/.local/bin` isn't on your PATH yet. Many
    distributions add it automatically at your next login; otherwise add it
    yourself and open a new terminal:
@@ -246,7 +246,7 @@ archive.
    go version
    ```
 
-   decrumb needs Go 1.27.2 or newer. (Go 1.21 and later download the needed
+   decrumb needs Go 1.27.3 or newer. (Go 1.21 and later download the needed
    version automatically.) No Go yet? Use
    [Option 1](#option-1-download-a-release), or install Go from
    [go.dev/dl](https://go.dev/dl/).
@@ -288,9 +288,8 @@ archive.
    decrumb --version
    ```
 
-   With `go install`, the first line reads `decrumb dev`: builds made this
-   way don't carry the release number yet. The rules line below it is the
-   same as in the release.
+   The first line should read `decrumb v0.1.0`, the same as a release
+   download; the rules line below it matches the release too.
 
 6. **First test:**
 
