@@ -16,8 +16,10 @@ There are two ways to install decrumb:
 - **[`go install`](#option-2-go-install-for-developers-with-go)**: for
   developers who already have Go; builds decrumb from source.
 
-The examples use version `v0.1.0`. For a newer release, replace `0.1.0` with
-its version number everywhere.
+The examples use version `v0.1.0`. Each download walkthrough below starts by
+setting the version and your system's architecture once; every later command
+uses those values. To install another version, change only the `VERSION` line
+(`$Version` in PowerShell).
 
 ### Option 1: Download a release
 
@@ -36,13 +38,17 @@ your system from this table:
 
 Each archive contains the `decrumb` program, `README.md`, the license files
 (`LICENSE`, `NOTICE`, `COPYING.LESSER`, `COPYING`) and the bundled ClearURLs
-rules as `clearurls/data.min.json`. `checksums.txt` lists the SHA-256 of every
-archive.
+rules as `clearurls/data.min.json`.
+
+`checksums.txt` is **not** inside the archive. It's a separate file under
+Assets that lists the SHA-256 of every archive. Download it too, keep it in
+the same folder as the archive, and use it to check the archive before you
+extract it (see [Verify your download](#verify-your-download)).
 
 You don't need the other files under Assets:
 
-- `checksums.txt` and `decrumb_0.1.0_attestation.sigstore.json` are only
-  needed to [verify your download](#verify-your-download) (recommended).
+- `decrumb_0.1.0_attestation.sigstore.json` is only used by the optional
+  [attestation check](#2-attestation-optional).
 - "Source code (zip)", "Source code (tar.gz)" and "Release attestation" are
   added by GitHub to every release. You don't need them.
 
@@ -51,33 +57,46 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
 #### Windows (PowerShell)
 
-1. **Check your system.** Open PowerShell and run:
+1. **Check your system and set two values.** Open PowerShell and run:
 
    ```powershell
    $env:PROCESSOR_ARCHITECTURE
    ```
 
-   `AMD64` means use the `windows_amd64` archive; `ARM64` means use
-   `windows_arm64` (replace `amd64` with `arm64` in the commands below).
+   It prints `AMD64` (most PCs) or `ARM64` (Windows on Arm). Then set the
+   version and architecture once, in the same window:
+
+   ```powershell
+   $Version = "0.1.0"   # the release you want
+   $Arch = "amd64"      # from above: AMD64 → amd64, ARM64 → arm64
+   ```
+
+   All the commands below use these two values, so you don't edit them. They
+   last until you close this PowerShell window; if you open a new one before
+   step 6, run these two lines again.
 
 2. **Download** the archive and `checksums.txt` into your Downloads folder:
 
    ```powershell
    cd $HOME\Downloads
-   Invoke-WebRequest https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_windows_amd64.zip -OutFile decrumb_0.1.0_windows_amd64.zip
-   Invoke-WebRequest https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt -OutFile checksums.txt
+   Invoke-WebRequest "https://github.com/pinebench/decrumb/releases/download/v$Version/decrumb_${Version}_windows_${Arch}.zip" -OutFile "decrumb_${Version}_windows_${Arch}.zip"
+   Invoke-WebRequest "https://github.com/pinebench/decrumb/releases/download/v$Version/checksums.txt" -OutFile checksums.txt
    ```
 
    You can also download both files in your browser, from Assets on the
    [latest release](https://github.com/pinebench/decrumb/releases/latest).
+   Save them in the same folder.
 
 3. **Verify the download** before you run anything from it: see
-   [Verify your download](#verify-your-download).
+   [Verify your download](#verify-your-download) (same window), then come
+   back here.
 
-4. **Extract** the archive:
+4. **Extract** the archive. Run these in the folder that contains the
+   archive:
 
    ```powershell
-   Expand-Archive decrumb_0.1.0_windows_amd64.zip -DestinationPath decrumb_0.1.0
+   cd $HOME\Downloads
+   Expand-Archive "decrumb_${Version}_windows_${Arch}.zip" -DestinationPath "decrumb_${Version}" -Force
    ```
 
 5. **Move `decrumb.exe`** to a folder for your own programs,
@@ -85,11 +104,12 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
    ```powershell
    New-Item -ItemType Directory -Force "$HOME\bin" | Out-Null
-   Move-Item decrumb_0.1.0\decrumb.exe "$HOME\bin\" -Force
+   Move-Item "decrumb_${Version}\decrumb.exe" "$HOME\bin\" -Force
    ```
 
-6. **Add that folder to your PATH** (only needed once; only for your user
-   account, no administrator rights needed):
+6. **Add that folder to your PATH.** Do this only once, the first time you
+   install decrumb (only for your user account, no administrator rights
+   needed):
 
    ```powershell
    $bin = "$HOME\bin"
@@ -100,12 +120,17 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    }
    ```
 
+   (These commands check first, so running them again does no harm.)
+
    Or without commands: open Start, search for **"Edit environment variables
    for your account"**, select **Path**, click **Edit → New**, enter
-   `%USERPROFILE%\bin`, and click **OK** twice.
+   `%USERPROFILE%\bin`, and click **OK** twice. If `%USERPROFILE%\bin` is
+   already in the list, don't add it again: adding it twice puts it in your
+   Path twice.
 
-7. **Open a new PowerShell window** (the PATH change only applies to new
-   windows) and check that it works:
+7. **Close PowerShell and open a new PowerShell window.** The PATH change
+   only applies to new windows; in the old one, `decrumb` isn't found yet.
+   Then check that it works:
 
    ```powershell
    decrumb --version
@@ -125,29 +150,43 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
 #### macOS
 
-1. **Check your Mac.** In Terminal, run `uname -m`. `arm64` means Apple
-   Silicon: use the `darwin_arm64` archive. `x86_64` means Intel: use
-   `darwin_amd64` (replace `arm64` with `amd64` in the commands below).
+1. **Check your Mac and set two values.** In Terminal, run `uname -m`. It
+   prints `arm64` (Apple Silicon, M1 and later) or `x86_64` (Intel). Then set
+   the version and architecture once, in the same window. For Apple Silicon:
+
+   ```sh
+   VERSION=0.1.0
+   ARCH=arm64
+   ```
+
+   For an Intel Mac, use `ARCH=amd64` instead. `VERSION` is the release you
+   want. All the commands below use these two values, so you don't edit them.
+   They last until you close this Terminal window; if you open a new one
+   before step 7, run these two lines again.
 
 2. **Download** the archive and `checksums.txt`:
 
    ```sh
    cd ~/Downloads
-   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_darwin_arm64.tar.gz
-   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v${VERSION}/decrumb_${VERSION}_darwin_${ARCH}.tar.gz
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v${VERSION}/checksums.txt
    ```
 
    You can also download both files in your browser, from Assets on the
    [latest release](https://github.com/pinebench/decrumb/releases/latest).
+   Save them in the same folder.
 
 3. **Verify the download** before you run anything from it: see
-   [Verify your download](#verify-your-download).
+   [Verify your download](#verify-your-download) (same window), then come
+   back here.
 
-4. **Extract** the archive:
+4. **Extract** the archive. Run these in the folder that contains the
+   archive:
 
    ```sh
-   mkdir decrumb_0.1.0
-   tar -xzf decrumb_0.1.0_darwin_arm64.tar.gz -C decrumb_0.1.0
+   cd ~/Downloads
+   mkdir -p decrumb_${VERSION}
+   tar -xzf decrumb_${VERSION}_darwin_${ARCH}.tar.gz -C decrumb_${VERSION}
    ```
 
 5. **Clear the quarantine flag.** macOS marks files downloaded with a browser
@@ -156,7 +195,7 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    After verifying the download, remove the flag:
 
    ```sh
-   xattr -d com.apple.quarantine decrumb_0.1.0/decrumb 2>/dev/null || true
+   xattr -d com.apple.quarantine decrumb_${VERSION}/decrumb 2>/dev/null || true
    ```
 
    (Files downloaded with `curl` aren't quarantined; then this does nothing.)
@@ -166,18 +205,25 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
    ```sh
    sudo mkdir -p /usr/local/bin
-   sudo mv decrumb_0.1.0/decrumb /usr/local/bin/
+   sudo mv decrumb_${VERSION}/decrumb /usr/local/bin/
    ```
 
    or only for you, in `~/bin`:
 
    ```sh
    mkdir -p ~/bin
-   mv decrumb_0.1.0/decrumb ~/bin/
+   mv decrumb_${VERSION}/decrumb ~/bin/
+   ```
+
+   With `~/bin`, also add it to your PATH. Do this only once, the first time
+   you install decrumb: running the line twice adds it twice.
+
+   ```sh
    echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
    ```
 
-   With `~/bin`, open a new Terminal window afterwards.
+   Then open a new Terminal window (or run `source ~/.zshrc`) before the next
+   step.
 
 7. **Check that it works:**
 
@@ -197,38 +243,51 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
 
 #### Linux
 
-1. **Check your system:** run `uname -m`. `x86_64` means use the
-   `linux_amd64` archive; `aarch64` means use `linux_arm64` (replace `amd64`
-   with `arm64` in the commands below).
+1. **Check your system and set two values.** Open a terminal and run
+   `uname -m`. It prints `x86_64` (most PCs and servers) or `aarch64` (Arm).
+   Then set the version and architecture once, in the same terminal:
+
+   ```sh
+   VERSION=0.1.0   # the release you want
+   ARCH=amd64      # from uname -m: x86_64 → amd64, aarch64 → arm64
+   ```
+
+   All the commands below use these two values, so you don't edit them. They
+   last until you close this terminal; if you open a new one before step 6,
+   run these two lines again.
 
 2. **Download** the archive and `checksums.txt`:
 
    ```sh
    cd ~/Downloads 2>/dev/null || cd ~
-   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/decrumb_0.1.0_linux_amd64.tar.gz
-   curl -LO https://github.com/pinebench/decrumb/releases/download/v0.1.0/checksums.txt
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v${VERSION}/decrumb_${VERSION}_linux_${ARCH}.tar.gz
+   curl -LO https://github.com/pinebench/decrumb/releases/download/v${VERSION}/checksums.txt
    ```
 
    (No `curl`? Use `wget` with the same URLs.)
 
    You can also download both files in your browser, from Assets on the
    [latest release](https://github.com/pinebench/decrumb/releases/latest).
+   Save them in the same folder.
 
 3. **Verify the download** before you run anything from it: see
-   [Verify your download](#verify-your-download).
+   [Verify your download](#verify-your-download) (same terminal), then come
+   back here.
 
-4. **Extract** the archive:
+4. **Extract** the archive. Run these in the folder that contains the
+   archive (the first line goes back to the folder from step 2):
 
    ```sh
-   mkdir decrumb_0.1.0
-   tar -xzf decrumb_0.1.0_linux_amd64.tar.gz -C decrumb_0.1.0
+   cd ~/Downloads 2>/dev/null || cd ~
+   mkdir -p decrumb_${VERSION}
+   tar -xzf decrumb_${VERSION}_linux_${ARCH}.tar.gz -C decrumb_${VERSION}
    ```
 
 5. **Move `decrumb`** to `~/.local/bin`:
 
    ```sh
    mkdir -p ~/.local/bin
-   mv decrumb_0.1.0/decrumb ~/.local/bin/
+   mv decrumb_${VERSION}/decrumb ~/.local/bin/
    ```
 
 6. **Check that it works:**
@@ -240,13 +299,17 @@ file names, e.g. `decrumb_0.1.0-rc.1_linux_amd64.tar.gz`. You never need them.
    The first line should read `decrumb v0.1.0`. If you get
    `decrumb: command not found`, `~/.local/bin` isn't on your PATH yet. Many
    distributions add it automatically at your next login; otherwise add it
-   yourself and open a new terminal:
+   yourself. Do this only once, the first time you install decrumb: running
+   the line twice adds it twice.
 
    ```sh
    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
    ```
 
    (For zsh, use `~/.zshrc` instead of `~/.bashrc`.)
+
+   Then open a new terminal (or run `source ~/.bashrc`, or `source ~/.zshrc`
+   for zsh) and run `decrumb --version` again.
 
 7. **First test:**
 
@@ -323,63 +386,111 @@ Gatekeeper.
 
 ## Verify your download
 
-Two checks, both recommended before you run a downloaded decrumb:
+There are two checks:
 
-1. **Checksum:** the archive's SHA-256 matches the one in `checksums.txt`, so
-   the file wasn't damaged or changed on the way.
-2. **Attestation:** GitHub confirms that the archive and `checksums.txt` were
-   built by decrumb's own release workflow in
+1. **Checksum** (recommended, and enough for most people): the archive's
+   SHA-256 matches the one in `checksums.txt`, so the file wasn't damaged or
+   changed on the way.
+2. **Attestation** (optional extra layer): GitHub confirms that the archive
+   and `checksums.txt` were built by decrumb's own release workflow in
    [pinebench/decrumb](https://github.com/pinebench/decrumb). This also
    catches a swapped `checksums.txt`.
 
-Run both in the folder you downloaded to, with your archive's name.
+Run these in the **same terminal** as your install walkthrough: the commands
+below use the `VERSION` and `ARCH` values (`$Version` and `$Arch` in
+PowerShell) you set in step 1. If you opened a new terminal, run the two lines
+from step 1 again. Run them in the folder that contains the archive and
+`checksums.txt`: first `cd ~/Downloads` (macOS, Linux) or
+`cd $HOME\Downloads` (PowerShell), or wherever you saved them.
 
 ### 1. Checksum
 
 **Windows (PowerShell):**
 
 ```powershell
-$file = "decrumb_0.1.0_windows_amd64.zip"
+$file = "decrumb_${Version}_windows_${Arch}.zip"
 $expected = ((Get-Content checksums.txt) -match "  $([regex]::Escape($file))$" -split "\s+")[0]
 $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
-if ($expected -and $expected -eq $actual) { "OK: checksum matches" } else { "FAILED: checksum does not match" }
+if (-not $expected) { "NOT FOUND: $file is not in checksums.txt" } elseif ($expected -eq $actual) { "OK: checksum matches" } else { "FAILED: checksum does not match" }
 ```
 
 **macOS:**
 
 ```sh
-grep " decrumb_0.1.0_darwin_arm64.tar.gz$" checksums.txt | shasum -a 256 -c
+grep " decrumb_${VERSION}_darwin_${ARCH}.tar.gz$" checksums.txt | shasum -a 256 -c
 ```
 
 **Linux:**
 
 ```sh
-grep " decrumb_0.1.0_linux_amd64.tar.gz$" checksums.txt | sha256sum -c
+grep " decrumb_${VERSION}_linux_${ARCH}.tar.gz$" checksums.txt | sha256sum -c
 ```
 
 **Good result:** `OK: checksum matches` (Windows) or a line ending in `: OK`,
 e.g. `decrumb_0.1.0_linux_amd64.tar.gz: OK` (macOS, Linux).
 
-**Bad result:** `FAILED: checksum does not match` (Windows), or `FAILED` and
-`WARNING: 1 computed checksum did NOT match` (macOS, Linux). No output on
-macOS/Linux means the file name wasn't found in `checksums.txt`; check the
-spelling. Either way: don't run the file; delete it and download it again
-from Assets on the
+**Bad result, the checksum did NOT match:** `FAILED: checksum does not match`
+(Windows), or a line ending in `FAILED` followed by
+`WARNING: 1 computed checksum did NOT match` (macOS, Linux). Don't run the
+file; delete it and download it again from Assets on the
 [latest release](https://github.com/pinebench/decrumb/releases/latest). If
 it still fails, please
 [report it privately](https://github.com/pinebench/decrumb/security).
 
-### 2. Attestation
+**The file name wasn't found in `checksums.txt`:** you see one of these
+instead:
 
-This needs the [GitHub CLI](https://cli.github.com/) (`gh`), signed in once
-with `gh auth login`. The commands are the same on Windows, macOS and Linux:
+- Linux: `sha256sum: 'standard input': no properly formatted checksum lines found`
+  (older Linux versions say `SHA256 checksum lines` instead of
+  `checksum lines`)
+- macOS: `shasum: standard input: no properly formatted SHA checksum lines found`
+- Windows: `NOT FOUND: … is not in checksums.txt`
 
-```sh
-gh attestation verify decrumb_0.1.0_linux_amd64.tar.gz -o pinebench
+This doesn't say anything about the file itself: the check didn't run,
+because the name it looked for isn't in `checksums.txt`. Usually it's a
+typo, the wrong `VERSION` or `ARCH` (or a new terminal where they aren't set
+any more), or you're in the wrong folder (then you also see
+`No such file or directory`). Fix that and run the check again.
+
+### 2. Attestation (optional)
+
+The checksum check is enough for most people. The attestation is an extra
+layer: it proves the file was built by decrumb's own release workflow on
+GitHub. You need:
+
+- **GitHub CLI (`gh`) 2.49.0 or newer**, the first version with
+  `gh attestation`. Check with `gh --version`. An older `gh` prints
+  `unknown command "attestation"`. Install or update it with GitHub's
+  official instructions at [cli.github.com](https://cli.github.com/) (Linux:
+  [Installing gh on Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)).
+  The `gh` package from your Linux distribution may be too old: Ubuntu's own
+  package (2.46), for example, doesn't have `gh attestation`.
+- **A GitHub account**, and a one-time sign-in: run `gh auth login`, choose
+  GitHub.com and to log in with a web browser, then enter the one-time code
+  that `gh` shows on the page that opens.
+
+Then run, in the same terminal and folder as the checksum check:
+
+**Windows (PowerShell):**
+
+```powershell
+gh attestation verify "decrumb_${Version}_windows_${Arch}.zip" -o pinebench
 gh attestation verify checksums.txt -o pinebench
 ```
 
-(Use your archive's name in the first line.)
+**macOS:**
+
+```sh
+gh attestation verify decrumb_${VERSION}_darwin_${ARCH}.tar.gz -o pinebench
+gh attestation verify checksums.txt -o pinebench
+```
+
+**Linux:**
+
+```sh
+gh attestation verify decrumb_${VERSION}_linux_${ARCH}.tar.gz -o pinebench
+gh attestation verify checksums.txt -o pinebench
+```
 
 **Good result,** for each file:
 
@@ -395,7 +506,7 @@ The following 1 attestation matched the policy criteria
 ```
 
 Check that **Build repo** is `pinebench/decrumb` and the workflow ends in
-`@refs/tags/v0.1.0`, the version you downloaded.
+`@refs/tags/v` plus the version you downloaded, e.g. `@refs/tags/v0.1.0`.
 
 **Bad result:** a message that verification failed, or that no attestations
 were found for the file. Don't run it: the file wasn't built by decrumb's
@@ -405,8 +516,9 @@ still fails, please [report it privately](https://github.com/pinebench/decrumb/s
 
 Each release also contains the attestation file itself,
 `decrumb_0.1.0_attestation.sigstore.json`, for checking without asking
-GitHub's API: add `--bundle decrumb_0.1.0_attestation.sigstore.json` to the
-commands above.
+GitHub's API: download it into the same folder and add
+`--bundle decrumb_${VERSION}_attestation.sigstore.json` to the commands above
+(in PowerShell: `--bundle "decrumb_${Version}_attestation.sigstore.json"`).
 
 ## Security warnings on first run
 
